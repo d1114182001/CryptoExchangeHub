@@ -1,0 +1,143 @@
+.dashboard-container {
+  position: absolute;
+  overflow: hidden;
+  padding-top: 16px;
+  padding-bottom: 32px;
+  padding-left: 20px;
+  background-color: rgba(138, 150, 167, 0.8);
+  width:20%;
+  height:100%;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  font-size: 2rem;
+  color: white;
+  font-weight: 666;
+}
+
+.dashboard-header .logo {
+  object-fit: contain;
+  max-width: 64px;
+  max-height: 64px;
+  aspect-ratio: 1 / 1;
+}
+
+.navigation {
+  display: flex;
+  flex-direction: column;
+  width: 16%;
+  
+}
+
+.navigation-item {
+  margin-top: 28px;
+}
+
+.main-content {
+  position:absolute;
+  display: flex;
+  flex-direction: column;
+  width: 84%;
+  margin-left: 5px;
+  padding-left: 30%;
+}
+.totalmoney p{
+  font-size: 36px;  /* 更大的字體大小 */
+  font-weight: 600;  /* 使用稍微粗一點的字體 */
+  line-height: 1.4;
+  font-family: "Microsoft YaHei";
+}
+.totalmoney div{
+  font-size: 160px;  /* 更大的字體大小 */
+  font-weight: 500;  /* 使用稍微粗一點的字體 */
+  line-height: 1.4;
+  font-family: "Microsoft YaHei";
+  margin-left: 100px;
+}
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  margin-top: 50px;
+}
+
+.wallet-card {
+  display: flex;
+  margin-top: 50px;
+  flex-direction: column;
+  padding: 16px 9px;
+  background-color: #83a0ca;
+  color: white;
+  border-radius: 38px;
+  text-align: right;
+  width:20%;
+}
+
+.wallet-card img {
+  max-width: 64px;
+  max-height: 64px;
+  object-fit: contain;
+}
+.wallet-card div{
+  font-size: 36px;  /* 更大的字體大小 */
+  font-weight: 300;  /* 使用稍微粗一點的字體 */
+  line-height: 1.4;
+  font-family: "Microsoft YaHei";
+  margin-right: 10px;
+}
+
+/*nav*/
+.navigation-item {
+  display: flex;
+  gap: 10px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.navigation-item img {
+  object-fit: contain;
+  flex-shrink: 0;
+  width: 5rem; /* equivalent to w-20 */
+  aspect-ratio: 1 / 1;
+}
+
+.navigation-item .label {
+  flex-grow: 1;
+  flex-shrink: 1;
+  margin: auto 0;
+  font-size: inherit;
+}
+/*btn*/
+.action-button {
+  position: relative;
+  z-index: 10;
+  display: inline-block;
+  height:150px;
+  width: 250px;
+  padding: 1rem 2rem; /* pt-14, px-16 */
+  font-size: 1.5rem; /* default text size for text-6xl */
+  text-align: center;
+  color: white;
+  background-color: #515a87; /* equivalent to bg-gray-900 */
+  border-radius: 88px;
+  white-space: nowrap;
+}
+
+.action-button:focus,
+.action-button:hover {
+  outline: none;
+  background-color: #374151; /* darker shade for hover effect */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .action-button {
+    padding: 2.5rem 1.25rem; /* max-md:pt-10, max-md:px-5 */
+    margin-top: 2.5rem; /* max-md:mt-10 */
+    font-size: 1rem; /* max-md:text-4xl */
+  }
+}
+
