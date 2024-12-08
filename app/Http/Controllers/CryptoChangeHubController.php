@@ -13,7 +13,7 @@ class CryptoChangeHubController extends Controller
      */
     public function index()
     {
-        return view("CryptoChangeHub.php");
+        return view("cryptoexChangeHub.index");
     }
 
     /**
