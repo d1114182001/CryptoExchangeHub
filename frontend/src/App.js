@@ -1,48 +1,59 @@
-import { useEffect, useState } from "react";
-import logo from "./logo.svg";
-import "./App.css";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 function App() {
-  const [data, setData] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [name, setName] = useState('');
+    const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    // 设置 API 地址为后端地址
-    const apiBaseUrl = "http://localhost:3001"; // 修改为后端运行的地址和端口
+    // Fetch all messages
+    useEffect(() => {
+        axios.get('http://localhost:3001/messages')
+            .then(res => setMessages(res.data))
+            .catch(err => console.error(err));
+    }, []);
 
-    // 从后端获取数据
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`${apiBaseUrl}/api/test`);
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const result = await response.json();
-        setData(result.message); // 假设后端返回 { "message": "Hello from backend!" }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setData("Error fetching data");
-      }
+    // Submit a new message
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        axios.post('http://localhost:3001/messages', { name, message })
+            .then(() => {
+                setMessages([...messages, { name, message }]);
+                setName('');
+                setMessage('');
+            })
+            .catch(err => console.error(err));
     };
 
-    fetchData();
-  }, []); // 空数组表示仅在组件挂载时执行一次
-
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>{data ? data : "Loading..."}</p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (
+        <div>
+            <h1>Message Board</h1>
+            <form onSubmit={handleSubmit}>
+                <input
+                    type="text"
+                    placeholder="Your Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                />
+                <textarea
+                    placeholder="Your Message"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    required
+                ></textarea>
+                <button type="submit">Submit</button>
+            </form>
+            <ul>
+                {messages.map((msg, index) => (
+                    <li key={index}>
+                        <strong>{msg.name}</strong>: {msg.message}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
 }
 
 export default App;
+

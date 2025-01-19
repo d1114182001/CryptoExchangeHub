@@ -1,49 +1,53 @@
 const express = require('express');
-const mysql = require('mysql'); // 引入 mysql 模組
+const mysql = require('mysql');
+const bodyParser = require('body-parser');
 const cors = require('cors');
+
 const app = express();
-const port = 3001;
+app.use(cors());
+app.use(bodyParser.json());
 
-app.use(cors()); 
-app.use(express.json());
-
-// 測試路由
-app.get('/api/test', (req, res) => {
-    res.json({ message: 'Hello from backend!' }); // 返回与前端期望一致的 JSON 格式
-  });
-  
-
-// 資料庫連接設定
+// Set up MySQL database connection
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root', // 替換為你的 MySQL 用戶名
-  password: '4182004V1314', // 替換為你的 MySQL 密碼
-  database: 'testdb', // 替換為你的資料庫名稱
+    host: 'localhost',
+    user: 'root',
+    password: '4182004V1314',
+    database: 'test_db'
 });
 
-// 連接資料庫
-db.connect((err) => {
-  if (err) {
-    console.error('資料庫連接失敗: ', err.stack);
-    return;
-  }
-  console.log('成功連接到資料庫');
-});
-
-// 查詢 API
-app.get('/data', (req, res) => {
-  db.query('SELECT * FROM cities', (err, results) => {
+db.connect(err => {
     if (err) {
-      console.error('查詢失敗: ', err.stack);
-      res.status(500).send('查詢失敗');
-      return;
+        console.log('Failed to connect to the database:', err);
+        return;
     }
-    res.json(results); // 回傳查詢結果
-  });
+    console.log('Successfully connected to the database');
 });
 
-// 啟動伺服器
-app.listen(port, () => {
-  console.log(`Backend running at http://localhost:${port}`);
+// API: Get all messages
+app.get('/messages', (req, res) => {
+    db.query('SELECT * FROM messages', (err, results) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.json(results);
+        }
+    });
 });
 
+// API: Add a new message
+app.post('/messages', (req, res) => {
+    const { name, message } = req.body;
+    db.query('INSERT INTO messages (name, message) VALUES (?, ?)', [name, message], (err) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.send('Message has been added');
+        }
+    });
+});
+
+// Start the server
+const PORT = 3001;
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
