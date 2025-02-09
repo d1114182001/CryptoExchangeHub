@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './Login.css'; // 引入 CSS 檔案
+import './login.css'; // Import CSS file
 
 function Login() {
     const [username, setUsername] = useState('');
@@ -15,7 +15,7 @@ function Login() {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:3001/login', {
+            const response = await fetch('http://192.168.0.46:3001/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
@@ -23,14 +23,14 @@ function Login() {
 
             if (response.ok) {
                 const data = await response.json();
-                setSuccess(data.message || '登入成功！');
+                setSuccess(data.message || 'Login successful!');
                 localStorage.setItem('token', data.token);
             } else {
                 const errorData = await response.json();
-                setError(errorData.message || '登入失敗');
+                setError(errorData.message || 'Login failed');
             }
         } catch (err) {
-            setError('伺服器錯誤，請稍後再試');
+            setError('Server error, please try again later');
         } finally {
             setLoading(false);
         }
@@ -39,33 +39,33 @@ function Login() {
     return (
         <div className="login-container">
             <form className="login-form" onSubmit={handleLogin}>
-                <h2 className="login-title">登入</h2>
+                <h2 className="login-title">Login</h2>
 
                 {error && <div className="login-message error">{error}</div>}
                 {success && <div className="login-message success">{success}</div>}
 
                 <div className="input-group">
-                    <label>用戶名</label>
+                    <label>Username</label>
                     <input
                         type="text"
-                        placeholder="輸入用戶名"
+                        placeholder="Enter username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
                 </div>
 
                 <div className="input-group">
-                    <label>密碼</label>
+                    <label>Password</label>
                     <input
                         type="password"
-                        placeholder="輸入密碼"
+                        placeholder="Enter password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
 
                 <button type="submit" className={`login-button ${loading ? 'disabled' : ''}`} disabled={loading}>
-                    {loading ? '登入中...' : '登入'}
+                    {loading ? 'Logging in...' : 'Login'}
                 </button>
             </form>
         </div>
