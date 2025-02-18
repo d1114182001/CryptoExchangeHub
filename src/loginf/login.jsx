@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import './login.css'; // Import CSS file
+import { useNavigate } from 'react-router-dom'; // 导入 useNavigate
+import { loginUser } from '../api'; // 导入 api.js 中的 loginUser 函数
+import './login.css'; // 引入登录样式
 
 function Login() {
     const [username, setUsername] = useState('');
@@ -8,6 +10,8 @@ function Login() {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const navigate = useNavigate(); // 创建 navigate 实例
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
@@ -15,22 +19,13 @@ function Login() {
         setLoading(true);
 
         try {
-            const response = await fetch('http://192.168.0.46:3001/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setSuccess(data.message || 'Login successful!');
-                localStorage.setItem('token', data.token);
-            } else {
-                const errorData = await response.json();
-                setError(errorData.message || 'Login failed');
-            }
+            const data = await loginUser(username, password); // 调用 api.js 中的函数
+            setSuccess(data.message || 'Login successful!');
+            localStorage.setItem('token', data.token);
+            // 登录成功后跳转到钱包管理页面
+            navigate('/wallet');
         } catch (err) {
-            setError('Server error, please try again later');
+            setError(err.message || 'Login failed');
         } finally {
             setLoading(false);
         }
@@ -73,3 +68,5 @@ function Login() {
 }
 
 export default Login;
+
+
