@@ -84,3 +84,16 @@
     background: #aaa;
     cursor: not-allowed;
 }
+
+
+.link {
+    color: #ff6347; /* 将颜色更改为你想要的颜色，比如番茄色 */
+    cursor: pointer; /* 添加指针样式以表明这是一个可点击的链接 */
+    text-decoration: underline; /* 可选：添加下划线效果 */
+}
+
+.link:hover {
+    color: #ff4500; /* 鼠标悬停时的颜色变化 */
+}
+
+

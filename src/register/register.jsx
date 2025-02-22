@@ -1,0 +1,42 @@
+import React, { useState } from "react";
+import { registerUser } from '../api'; // 导入 registerUser 函数
+
+export default function Register() {
+    const [formData, setFormData] = useState({
+        username: "",
+        password: "",
+        email: "",
+        phone: ""
+    });
+
+    const [message, setMessage] = useState("");
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const data = await registerUser(formData); // 调用 registerUser
+            setMessage(data.message);
+        } catch (error) {
+            setMessage(error.message);
+        }
+    };
+
+    return (
+        <div>
+            <h2>註冊</h2>
+            <form onSubmit={handleSubmit}>
+                <input type="text" name="username" placeholder="帳號" onChange={handleChange} required />
+                <input type="password" name="password" placeholder="密碼" onChange={handleChange} required />
+                <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
+                <input type="text" name="phone" placeholder="手機號碼" onChange={handleChange} required />
+                <button type="submit">註冊</button>
+            </form>
+            {message && <p>{message}</p>}
+        </div>
+    );
+}

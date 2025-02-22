@@ -62,11 +62,16 @@ function Login() {
                 <button type="submit" className={`login-button ${loading ? 'disabled' : ''}`} disabled={loading}>
                     {loading ? 'Logging in...' : 'Login'}
                 </button>
+
+                {/* 添加注册链接 */}
+                <p className="register-link">
+                    Don't have an account? <span onClick={() => navigate('/register')} className="link">Register here</span>
+                </p>
+
             </form>
         </div>
     );
 }
 
 export default Login;
-
 
