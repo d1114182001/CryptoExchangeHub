@@ -1,5 +1,4 @@
-// src/App.jsx
-import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom"; // 去掉 Link 的导入
 import Wallet from "./pages/Wallet";
 import CreateWallet from "./Wallet/CreateWallet";
 import ImportWallet from "./Wallet/ImportWallet";
@@ -15,7 +14,7 @@ const router = createBrowserRouter([
     element: <Layout />, // 在 `Layout` 加入全局导航列
     children: [
       { path: "", element: <Login /> }, // 首页为 Login 页面
-      { path: "register", element: <Register /> },
+      { path: "register", element: <Register /> }, // 注册页面路由
       {
         path: "wallet",
         element: <WalletLayout />, // Wallet 內部管理自己的子路由

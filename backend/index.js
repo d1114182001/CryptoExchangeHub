@@ -10,22 +10,21 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-
 // 建立 MySQL 連線
 const db = mysql.createConnection({
-  host: process.env.DB_HOST || "localhost", // Use "localhost" if running on Raspberry Pi
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "login",
+  host: "localhost",
+  user: "root",
+  password: "4182004V1314",
+  database: "uw",
 });
-  
-  db.connect((err) => {
-    if (err) {
-      console.error("Database connection failed:", err.message);
-    } else {
-      console.log("Connected to the database successfully.");
-    }
-  });
+
+db.connect((err) => {
+  if (err) {
+    console.error("Database connection failed:", err.message);
+  } else {
+    console.log("Connected to the database successfully.");
+  }
+});
 
 // 註冊 API
 app.post("/register", async (req, res) => {
@@ -36,16 +35,12 @@ app.post("/register", async (req, res) => {
   }
 
   try {
-    // 檢查使用者是否已存在
     const checkUserSql = "SELECT * FROM users WHERE username = ?";
     db.query(checkUserSql, [username], async (err, results) => {
       if (err) return res.status(500).json({ message: "伺服器錯誤" });
       if (results.length > 0) return res.status(400).json({ message: "使用者名稱已存在" });
 
-      // 加密密碼
       const hashedPassword = await bcrypt.hash(password, 10);
-
-      // 插入新使用者到資料庫
       const sql = "INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)";
       db.query(sql, [username, hashedPassword, email, phone], (err) => {
         if (err) {
@@ -61,7 +56,6 @@ app.post("/register", async (req, res) => {
   }
 });
 
-
 // 登入 API
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
@@ -75,20 +69,22 @@ app.post("/login", (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) return res.status(401).json({ message: "密碼錯誤" });
 
-    const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET || "your_jwt_secret", { expiresIn: "1h" });
-    res.json({ success: true, token });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "your_jwt_secret", { expiresIn: "1h" });
+    res.json({ success: true, token, userId: user.id }); // 返回 userId
   });
 });
 
 // 創建錢包 API
 app.post("/create-wallet", (req, res) => {
+  const { user_id } = req.body; // 從請求中獲取 user_id
+
   try {
     const privateKey = new bitcore.PrivateKey();
     const publicKey = privateKey.toPublicKey().toString();
     const address = privateKey.toAddress().toString();
 
-    const sql = "INSERT INTO wallets (address, public_key, private_key) VALUES (?, ?, ?)";
-    db.query(sql, [address, publicKey, privateKey.toString()], (err) => {
+    const sql = "INSERT INTO wallets (user_id, address, public_key, private_key) VALUES (?, ?, ?, ?)";
+    db.query(sql, [user_id, address, publicKey, privateKey.toString()], (err) => {
       if (err) return res.status(500).json({ error: "Failed to create wallet." });
       res.json({ address, publicKey, privateKey: privateKey.toString() });
     });
@@ -108,7 +104,6 @@ app.get("/wallets", (req, res) => {
 });
 
 // 啟動伺服器
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server is running at http://<RaspberryPi_IP>:${PORT}`);
+app.listen(3001, () => {
+  console.log('服务器运行在 http://localhost:3001');
 });

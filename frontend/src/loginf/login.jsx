@@ -22,6 +22,7 @@ function Login() {
             const data = await loginUser(username, password); // 调用 api.js 中的函数
             setSuccess(data.message || 'Login successful!');
             localStorage.setItem('token', data.token);
+            localStorage.setItem('userId', data.userId); // 存储 userId
             // 登录成功后跳转到钱包管理页面
             navigate('/wallet');
         } catch (err) {
@@ -67,11 +68,9 @@ function Login() {
                 <p className="register-link">
                     Don't have an account? <span onClick={() => navigate('/register')} className="link">Register here</span>
                 </p>
-
             </form>
         </div>
     );
 }
 
 export default Login;
-
