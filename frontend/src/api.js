@@ -34,14 +34,19 @@ export const addWallet = async (userId) => {
 };
 
 
-export const getAllWallets = async () => {
-    try {
-      const response = await axios.get(`${api_url}/wallets`);
-      return response.data;
-    } catch (error) {
-      throw new Error("無法獲取錢包數據");
-    }
-}
+export const getAllWallets = async (token) => {
+  try {
+    const response = await axios.get(`${api_url}/wallets`, {
+      headers: {
+        'Authorization': `Bearer ${token}`, // 在请求头中添加 Authorization
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error("無法獲取錢包數據");
+  }
+};
+
 export const registerUser = async (formData) => {
   try {
     console.log("Submitting formData:", formData);

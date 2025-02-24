@@ -94,14 +94,28 @@ app.post("/create-wallet", (req, res) => {
   }
 });
 
-// 取得所有錢包 API
+
+// 取得特定使用者的錢包 API
 app.get("/wallets", (req, res) => {
-  const sql = "SELECT * FROM wallets";
-  db.query(sql, (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
+  // 从请求头中获取 JWT token
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "未提供授權標頭" });
+
+  // 验证 token
+  jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret", (err, decoded) => {
+    if (err) return res.status(401).json({ message: "無效的授權標頭" });
+
+    const userId = decoded.userId; // 获取用户 ID
+
+    // 根据用户 ID 查询钱包信息
+    const sql = "SELECT * FROM wallets WHERE user_id = ?";
+    db.query(sql, [userId], (err, results) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(results); // 返回该用户的所有钱包信息
+    });
   });
 });
+
 
 // 啟動伺服器
 app.listen(3001, () => {
