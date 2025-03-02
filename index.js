@@ -26,6 +26,19 @@ db.connect((err) => {
   }
 });
 
+
+// JWT 驗證中間件
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "未提供授權標頭" });
+
+  jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret", (err, decoded) => {
+    if (err) return res.status(401).json({ message: "無效的授權標頭" });
+    req.userId = decoded.userId;
+    next();
+  });
+};
+
 // 註冊 API
 app.post("/register", async (req, res) => {
   const { username, password, email, phone } = req.body;
@@ -116,6 +129,81 @@ app.get("/wallets", (req, res) => {
   });
 });
 
+
+
+app.post("/send-transaction", verifyToken, async (req, res) => {
+  const { senderAddress, recipientAddress, amount } = req.body;
+  const userId = req.userId;
+
+  if (!senderAddress || !recipientAddress || !amount) {
+    return res.status(400).json({ message: "請提供發送地址、收款地址和金額" });
+  }
+
+  try {
+    const sql = "SELECT * FROM wallets WHERE user_id = ? AND address = ?";
+    db.query(sql, [userId, senderAddress], async (err, results) => {
+      if (err) return res.status(500).json({ message: "伺服器錯誤" });
+      if (results.length === 0) {
+        return res.status(404).json({ message: "未找到指定的發送錢包或無權限" });
+      }
+
+      const wallet = results[0];
+      const privateKey = new bitcore.PrivateKey(wallet.private_key);
+      const amountInBTC = parseFloat(amount);
+      console.log("接收到的金額 (BTC):", amountInBTC);
+      console.log("發送錢包餘額 (BTC):", wallet.balance);
+
+      if (wallet.balance === null || wallet.balance < amountInBTC) {
+        return res.status(400).json({ message: "餘額不足" });
+      }
+
+      const amountInSatoshis = Math.round(amountInBTC);
+      const transaction = new bitcore.Transaction()
+        .to(recipientAddress, amountInSatoshis)
+        .sign(privateKey);
+      const transactionId = transaction.hash;
+
+      // 開始事務，確保發送和接收餘額更新一致
+      db.beginTransaction((err) => {
+        if (err) return res.status(500).json({ message: "事務啟動失敗" });
+
+        // 更新發送方餘額
+        const sqlUpdateSender = "UPDATE wallets SET balance = balance - ? WHERE address = ?";
+        db.query(sqlUpdateSender, [amountInBTC, senderAddress], (err) => {
+          if (err) {
+            db.rollback(() => res.status(500).json({ message: "更新發送餘額失敗" }));
+            return;
+          }
+
+          // 檢查接收方是否在系統內並更新餘額
+          const sqlUpdateRecipient = "UPDATE wallets SET balance = balance + ? WHERE address = ?";
+          db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err, result) => {
+            if (err) {
+              db.rollback(() => res.status(500).json({ message: "更新接收餘額失敗" }));
+              return;
+            }
+
+            // 如果影響的行數為 0，說明接收方不在系統內，可以忽略
+            if (result.affectedRows === 0) {
+              console.log("接收方地址不在系統內，僅更新發送方餘額");
+            }
+
+            db.commit((err) => {
+              if (err) {
+                db.rollback(() => res.status(500).json({ message: "事務提交失敗" }));
+                return;
+              }
+              res.json({ message: "交易已成功發送", transactionId });
+            });
+          });
+        });
+      });
+    });
+  } catch (error) {
+    console.error("交易處理錯誤:", error);
+    res.status(500).json({ message: "交易失敗" });
+  }
+});
 
 // 啟動伺服器
 app.listen(3001, () => {

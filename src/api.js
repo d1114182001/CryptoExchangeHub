@@ -57,3 +57,19 @@ export const registerUser = async (formData) => {
     throw new Error(error.response?.data?.message || '註冊失敗，請稍後再試。');
   }
 };
+
+
+
+export const sendTransaction = async (senderAddress, recipientAddress, amount) => {
+  try {
+    const token = localStorage.getItem('token'); // 從 localStorage 獲取 token
+    const response = await axios.post(
+      `${api_url}/send-transaction`,
+      { senderAddress, recipientAddress, amount },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '交易失敗，請稍後再試');
+  }
+};

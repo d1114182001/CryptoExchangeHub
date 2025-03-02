@@ -7,6 +7,7 @@ import RestoreWallet from "./Wallet/RestoreWallet";
 import EncryptWallet from "./Wallet/EncryptWallet";
 import Login from "./loginf/login"; // 导入 Login 组件
 import Register from "./register/register"; // 导入 Register 组件
+import Transaction from "./Transaction/Transaction"; 
 
 const router = createBrowserRouter([
   {
@@ -14,7 +15,8 @@ const router = createBrowserRouter([
     element: <Layout />, // 在 `Layout` 加入全局导航列
     children: [
       { path: "", element: <Login /> }, // 首页为 Login 页面
-      { path: "register", element: <Register /> }, // 注册页面路由
+      { path: "register", element: <Register /> },
+      { path: "transaction/:address", element: <Transaction /> }, 
       {
         path: "wallet",
         element: <WalletLayout />, // Wallet 內部管理自己的子路由
