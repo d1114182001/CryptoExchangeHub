@@ -10,6 +10,7 @@ const Transaction = () => {
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const [transactionDetails, setTransactionDetails] = useState(null); // 用來存放交易詳情
 
   // 獲取用戶的所有錢包
   useEffect(() => {
@@ -26,7 +27,7 @@ const Transaction = () => {
       }
     };
     fetchWallets();
-  }, );
+  }, [senderAddress]); // 加上 senderAddress 依賴，避免警告
 
   const handleSendTransaction = async () => {
     if (!senderAddress || !recipientAddress || !amount) {
@@ -39,6 +40,17 @@ const Transaction = () => {
     setLoading(true);
     try {
       const response = await sendTransaction(senderAddress, recipientAddress, amount);
+      
+      // 設置交易詳情
+      setTransactionDetails({
+        sender: senderAddress,
+        recipient: recipientAddress,
+        transactionId: response.transactionId, // TxID
+        transactionSignature: response.transactionSignature, // 假設後端回傳簽名
+        transactionHash: response.transactionHash, // 交易摘要
+        amount: response.amount // 交易金額
+      });
+
       toast.success(`交易已發送！交易 ID: ${response.transactionId}`);
       setRecipientAddress('');
       setAmount('');
@@ -63,7 +75,7 @@ const Transaction = () => {
         >
           {wallets.map((wallet) => (
             <option key={wallet.address} value={wallet.address}>
-              {wallet.address} (餘額: {wallet.balance } BTC)
+              {wallet.address} (餘額: {wallet.balance} BTC)
             </option>
           ))}
         </select>
@@ -99,8 +111,23 @@ const Transaction = () => {
       >
         {loading ? "發送中..." : "發送比特幣"}
       </button>
+
+      {/* 顯示交易詳情 */}
+      {transactionDetails && (
+        <div className="transaction-details">
+          <h3>交易詳情</h3>
+          <p><strong>發送者：</strong> {transactionDetails.sender}</p>
+          <p><strong>接收者：</strong> {transactionDetails.recipient}</p>
+          <p><strong>發送金額：</strong> {transactionDetails.amount} BTC</p>
+          <p><strong>交易訊息摘要：</strong> {transactionDetails.transactionHash}</p>
+          <p><strong>交易簽名：</strong> {transactionDetails.transactionSignature}</p>
+          <p><strong>交易哈希值 (TxID)：</strong> {transactionDetails.transactionId}</p>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Transaction;
+
+

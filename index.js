@@ -3,6 +3,7 @@ const mysql = require("mysql2");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
+const crypto = require('crypto');
 const bitcore = require("bitcore-lib");
 require("dotenv").config();
 
@@ -150,24 +151,45 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
       const wallet = results[0];
       const privateKey = new bitcore.PrivateKey(wallet.private_key);
       const amountInBTC = parseFloat(amount);
-      console.log("接收到的金額 (BTC):", amountInBTC);
-      console.log("發送錢包餘額 (BTC):", wallet.balance);
 
       if (wallet.balance === null || wallet.balance < amountInBTC) {
         return res.status(400).json({ message: "餘額不足" });
       }
 
-      const amountInSatoshis = Math.round(amountInBTC);
+      const amountInSatoshis = Math.round(amountInBTC * 1e8);
+
+      // 建立交易內容
+      const transactionContent = {
+        senderAddress,
+        recipientAddress,
+        amount: amountInBTC
+      };
+
+      // 生成交易訊息摘要（SHA-256）
+      const transactionHash = crypto.createHash('sha256')
+        .update(JSON.stringify(transactionContent))
+        .digest('hex');
+
+      console.log("交易訊息摘要 (SHA-256):", transactionHash);
+
+      // 用私鑰簽名交易訊息摘要
+      const message = new bitcore.Message(transactionHash);
+      const transactionSignature = message.sign(privateKey);
+
+      console.log("交易簽名:", transactionSignature);
+
+      // 建立交易（不使用 UTXO）
       const transaction = new bitcore.Transaction()
-        .to(recipientAddress, amountInSatoshis)
-        .sign(privateKey);
+        .to(recipientAddress, amountInSatoshis)  // 設置接收者地址和金額
+        .change(senderAddress)  // 返回找零給發送者
+        .sign(privateKey);  // 用私鑰簽名交易
+
       const transactionId = transaction.hash;
 
-      // 開始事務，確保發送和接收餘額更新一致
       db.beginTransaction((err) => {
         if (err) return res.status(500).json({ message: "事務啟動失敗" });
 
-        // 更新發送方餘額
+        // 更新發送者餘額
         const sqlUpdateSender = "UPDATE wallets SET balance = balance - ? WHERE address = ?";
         db.query(sqlUpdateSender, [amountInBTC, senderAddress], (err) => {
           if (err) {
@@ -175,25 +197,31 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
             return;
           }
 
-          // 檢查接收方是否在系統內並更新餘額
+          // 更新接收者餘額
           const sqlUpdateRecipient = "UPDATE wallets SET balance = balance + ? WHERE address = ?";
-          db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err, result) => {
+          db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err) => {
             if (err) {
               db.rollback(() => res.status(500).json({ message: "更新接收餘額失敗" }));
               return;
             }
 
-            // 如果影響的行數為 0，說明接收方不在系統內，可以忽略
-            if (result.affectedRows === 0) {
-              console.log("接收方地址不在系統內，僅更新發送方餘額");
-            }
-
+            // 提交事務
             db.commit((err) => {
               if (err) {
                 db.rollback(() => res.status(500).json({ message: "事務提交失敗" }));
                 return;
               }
-              res.json({ message: "交易已成功發送", transactionId });
+
+              // 返回交易成功消息和詳細資訊
+              res.json({
+                message: "交易已成功發送",
+                transactionId,
+                transactionSignature,
+                senderAddress,
+                recipientAddress,
+                transactionHash,  // 返回交易訊息摘要
+                amount: amountInBTC // 返回交易金額
+              });
             });
           });
         });
@@ -204,6 +232,8 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
     res.status(500).json({ message: "交易失敗" });
   }
 });
+
+
 
 // 啟動伺服器
 app.listen(3001, () => {
