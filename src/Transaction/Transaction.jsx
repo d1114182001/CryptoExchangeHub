@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { sendTransaction, getAllWallets, getPrivateKey, completeTransaction } from '../api';
+import "./Transaction.css";
+
 
 const Transaction = () => {
   const { address } = useParams();
@@ -20,6 +22,8 @@ const Transaction = () => {
   const [transactionId, setTransactionId] = useState('');
   const [showFinalizeButton, setShowFinalizeButton] = useState(false);
   const [showTransactionHash, setShowTransactionHash] = useState(false);
+  const [formHidden, setFormHidden] = useState(false); // 控制表单是否隐藏
+
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -52,8 +56,10 @@ const Transaction = () => {
         amount: response.amount,
         transactionHash: response.transactionHash,
       });
-      // 不再這裡設置 showPasswordInput
       toast.success("交易已初始化");
+
+      // 交易初始化成功后，隐藏表单并显示交易详情
+      setFormHidden(true); 
     } catch (error) {
       toast.error(error.message || "交易初始化失敗");
     } finally {
@@ -74,6 +80,7 @@ const Transaction = () => {
     }
   };
 
+  
   const handleSignTransaction = async () => {
     try {
       const response = await completeTransaction(
@@ -116,44 +123,47 @@ const Transaction = () => {
   return (
     <div className="transaction-container">
       <h2>比特幣交易</h2>
+      {!formHidden && (  // 如果formHidden为false，显示表单
+        <>
+          <div className="form-group">
+            <label>從錢包地址</label>
+            <select value={senderAddress} onChange={(e) => setSenderAddress(e.target.value)} disabled={loading}>
+              {wallets.map((wallet) => (
+                <option key={wallet.address} value={wallet.address}>
+                  {wallet.address} (餘額: {wallet.balance} BTC)
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div className="form-group">
-        <label>從錢包地址</label>
-        <select value={senderAddress} onChange={(e) => setSenderAddress(e.target.value)} disabled={loading}>
-          {wallets.map((wallet) => (
-            <option key={wallet.address} value={wallet.address}>
-              {wallet.address} (餘額: {wallet.balance} BTC)
-            </option>
-          ))}
-        </select>
-      </div>
+          <div className="form-group">
+            <label>接收者地址</label>
+            <input
+              type="text"
+              value={recipientAddress}
+              onChange={(e) => setRecipientAddress(e.target.value)}
+              placeholder="輸入接收者的比特幣地址"
+              disabled={loading}
+            />
+          </div>
 
-      <div className="form-group">
-        <label>接收者地址</label>
-        <input
-          type="text"
-          value={recipientAddress}
-          onChange={(e) => setRecipientAddress(e.target.value)}
-          placeholder="輸入接收者的比特幣地址"
-          disabled={loading}
-        />
-      </div>
+          <div className="form-group">
+            <label>金額 (BTC)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="輸入發送金額 (BTC)"
+              step="0.00000001"
+              disabled={loading}
+            />
+          </div>
 
-      <div className="form-group">
-        <label>金額 (BTC)</label>
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="輸入發送金額 (BTC)"
-          step="0.00000001"
-          disabled={loading}
-        />
-      </div>
-
-      <button onClick={handleSendTransaction} className="send-btn" disabled={loading}>
-        {loading ? "發送中..." : "發送比特幣"}
-      </button>
+          <button onClick={handleSendTransaction} className="send-btn" disabled={loading}>
+            {loading ? "發送中..." : "發送比特幣"}
+          </button>
+        </>
+      )}
 
       {transactionDetails && (
         <div className="transaction-details">
@@ -191,7 +201,8 @@ const Transaction = () => {
 
       {finalSignature && (
         <div className="signature-result">
-          <p><strong>簽名成功 交易簽名：</strong> {finalSignature}</p>
+          <p><strong>簽名成功 </strong></p>
+          <p><strong>交易簽名：</strong> {finalSignature}</p>
         </div>
       )}
 
