@@ -62,7 +62,7 @@ export const registerUser = async (formData) => {
 
 export const sendTransaction = async (senderAddress, recipientAddress, amount) => {
   try {
-    const token = localStorage.getItem('token'); // 從 localStorage 獲取 token
+    const token = localStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/send-transaction`,
       { senderAddress, recipientAddress, amount },
@@ -70,6 +70,36 @@ export const sendTransaction = async (senderAddress, recipientAddress, amount) =
     );
     return response.data;
   } catch (err) {
-    throw new Error(err.response?.data?.message || '交易失敗，請稍後再試');
+    throw new Error(err.response?.data?.message || '交易初始化失敗');
+  }
+};
+
+
+export const getPrivateKey = async (senderAddress, password) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${api_url}/get-private-key`,
+      { senderAddress, password },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '獲取私鑰失敗');
+  }
+};
+
+
+export const completeTransaction = async (senderAddress, recipientAddress, amount, transactionHash) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${api_url}/complete-transaction`,
+      { senderAddress, recipientAddress, amount, transactionHash },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '完成交易失敗');
   }
 };

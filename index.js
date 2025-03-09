@@ -132,7 +132,159 @@ app.get("/wallets", (req, res) => {
 
 
 
+// 原有 /send-transaction 修改如下
 app.post("/send-transaction", verifyToken, async (req, res) => {
+  const { senderAddress, recipientAddress, amount } = req.body;
+  const userId = req.userId;
+
+  if (!senderAddress || !recipientAddress || !amount) {
+    return res.status(400).json({ message: "請提供發送地址、收款地址和金額" });
+  }
+
+  try {
+    const sql = "SELECT * FROM wallets WHERE user_id = ? AND address = ?";
+    db.query(sql, [userId, senderAddress], async (err, results) => {
+      if (err) return res.status(500).json({ message: "伺服器錯誤" });
+      if (results.length === 0) {
+        return res.status(404).json({ message: "未找到指定的發送錢包或無權限" });
+      }
+
+      const wallet = results[0];
+      const amountInBTC = parseFloat(amount);
+
+      if (wallet.balance === null || wallet.balance < amountInBTC) {
+        return res.status(400).json({ message: "餘額不足" });
+      }
+
+      // 建立交易內容
+      const transactionContent = {
+        senderAddress,
+        recipientAddress,
+        amount: amountInBTC,
+      };
+
+      // 生成交易訊息摘要（SHA-256）
+      const transactionHash = crypto.createHash('sha256')
+        .update(JSON.stringify(transactionContent))
+        .digest('hex');
+
+      // 這裡不直接簽名和完成交易，只返回初始數據
+      res.json({
+        message: "交易已初始化",
+        senderAddress,
+        recipientAddress,
+        amount: amountInBTC,
+        transactionHash,
+      });
+    });
+  } catch (error) {
+    console.error("交易處理錯誤:", error);
+    res.status(500).json({ message: "交易初始化失敗" });
+  }
+});
+
+app.post("/get-private-key", verifyToken, async (req, res) => {
+  const { senderAddress, password } = req.body;
+  const userId = req.userId;
+
+  try {
+    // 驗證密碼
+    const sqlUser = "SELECT * FROM users WHERE id = ?";
+    db.query(sqlUser, [userId], async (err, userResults) => {
+      if (err) return res.status(500).json({ message: "伺服器錯誤" });
+      if (userResults.length === 0) return res.status(404).json({ message: "用戶不存在" });
+
+      const user = userResults[0];
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) return res.status(401).json({ message: "密碼錯誤" });
+
+      // 獲取私鑰
+      const sqlWallet = "SELECT private_key FROM wallets WHERE user_id = ? AND address = ?";
+      db.query(sqlWallet, [userId, senderAddress], (err, walletResults) => {
+        if (err) return res.status(500).json({ message: "伺服器錯誤" });
+        if (walletResults.length === 0) return res.status(404).json({ message: "錢包不存在" });
+
+        const privateKey = walletResults[0].private_key;
+        res.json({ privateKey });
+      });
+    });
+  } catch (error) {
+    console.error("獲取私鑰錯誤:", error);
+    res.status(500).json({ message: "伺服器錯誤" });
+  }
+});
+
+
+app.post("/complete-transaction", verifyToken, async (req, res) => {
+  const { senderAddress, recipientAddress, amount, transactionHash } = req.body;
+  const userId = req.userId;
+
+  try {
+    const sqlSender = "SELECT * FROM wallets WHERE user_id = ? AND address = ?";
+    db.query(sqlSender, [userId, senderAddress], async (err, senderResults) => {
+      if (err) return res.status(500).json({ message: "伺服器錯誤" });
+      if (senderResults.length === 0) return res.status(404).json({ message: "發送錢包不存在" });
+
+      const wallet = senderResults[0];
+      const privateKey = new bitcore.PrivateKey(wallet.private_key);
+
+      const amountInBTC = parseFloat(amount);
+      if (wallet.balance < amountInBTC) return res.status(400).json({ message: "餘額不足" });
+
+      // 生成簽名（後端負責）
+      const message = new bitcore.Message(transactionHash);
+      const signature = message.sign(privateKey);
+
+      // 驗證簽名（可選，確認簽名有效）
+      const isValidSignature = message.verify(senderAddress, signature);
+      if (!isValidSignature) return res.status(400).json({ message: "簽名無效" });
+
+      const amountInSatoshis = Math.round(amountInBTC * 1e8);
+      const transaction = new bitcore.Transaction()
+        .to(recipientAddress, amountInSatoshis)
+        .change(senderAddress)
+        .sign(privateKey);
+      const transactionId = transaction.hash;
+
+      db.beginTransaction((err) => {
+        if (err) return res.status(500).json({ message: "事務啟動失敗" });
+
+        const sqlUpdateSender = "UPDATE wallets SET balance = balance - ? WHERE address = ?";
+        db.query(sqlUpdateSender, [amountInBTC, senderAddress], (err) => {
+          if (err) {
+            db.rollback(() => res.status(500).json({ message: "更新發送餘額失敗" }));
+            return;
+          }
+
+          const sqlUpdateRecipient = "UPDATE wallets SET balance = balance + ? WHERE address = ?";
+          db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err) => {
+            if (err) {
+              db.rollback(() => res.status(500).json({ message: "更新接收餘額失敗" }));
+              return;
+            }
+
+            db.commit((err) => {
+              if (err) {
+                db.rollback(() => res.status(500).json({ message: "事務提交失敗" }));
+                return;
+              }
+              res.json({
+                message: "交易成功",
+                transactionId,
+                signature, // 返回後端生成的簽名
+              });
+            });
+          });
+        });
+      });
+    });
+  } catch (error) {
+    console.error("完成交易錯誤:", error);
+    res.status(500).json({ message: "交易失敗" });
+  }
+});
+
+/*app.post("/send-transaction", verifyToken, async (req, res) => {
   const { senderAddress, recipientAddress, amount } = req.body;
   const userId = req.userId;
 
@@ -178,6 +330,15 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
 
       console.log("交易簽名:", transactionSignature);
 
+      // **签名验证部分**
+      // 验证交易签名是否有效
+      const isValidSignature = message.verify(senderAddress, transactionSignature);
+      if (!isValidSignature) {
+        return res.status(400).json({ message: "交易簽名無效" });
+      }
+
+      console.log("交易簽名有效，開始處理交易...");
+
       // 建立交易（不使用 UTXO）
       const transaction = new bitcore.Transaction()
         .to(recipientAddress, amountInSatoshis)  // 設置接收者地址和金額
@@ -220,7 +381,8 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
                 senderAddress,
                 recipientAddress,
                 transactionHash,  // 返回交易訊息摘要
-                amount: amountInBTC // 返回交易金額
+                amount: amountInBTC,  // 返回交易金額
+                signatureValid: true  // 返回签名验证有效的标志
               });
             });
           });
@@ -231,7 +393,8 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
     console.error("交易處理錯誤:", error);
     res.status(500).json({ message: "交易失敗" });
   }
-});
+});*/
+
 
 
 
