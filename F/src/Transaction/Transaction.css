@@ -78,8 +78,45 @@
   
   .password-input input {
     margin-top: 5px;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   
   .show-hash-btn, .complete-btn, .finalize-btn {
     margin-top: 10px;
   }
+
+  .key-lock-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  
+  .key {
+    font-size: 40px;
+    cursor: grab;
+    transition: transform 0.3s ease;
+  }
+  
+  .key:active {
+    cursor: grabbing;
+  }
+  
+  .lock {
+    font-size: 40px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #ccc;
+    border-radius: 50%;
+    transition: all 0.5s ease;
+  }
+  
+  .lock:hover {
+    border-color: #28a745;
+  }
+  

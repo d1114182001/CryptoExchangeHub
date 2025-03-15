@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import { sendTransaction, getAllWallets, getPrivateKey, completeTransaction } from '../api';
 import "./Transaction.css";
 
-
 const Transaction = () => {
   const { address } = useParams();
   const [wallets, setWallets] = useState([]);
@@ -22,8 +21,8 @@ const Transaction = () => {
   const [transactionId, setTransactionId] = useState('');
   const [showFinalizeButton, setShowFinalizeButton] = useState(false);
   const [showTransactionHash, setShowTransactionHash] = useState(false);
-  const [formHidden, setFormHidden] = useState(false); // 控制表单是否隐藏
-
+  const [formHidden, setFormHidden] = useState(false);
+  const [isTransactionSubmitted, setIsTransactionSubmitted] = useState(false);
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -57,9 +56,7 @@ const Transaction = () => {
         transactionHash: response.transactionHash,
       });
       toast.success("交易已初始化");
-
-      // 交易初始化成功后，隐藏表单并显示交易详情
-      setFormHidden(true); 
+      setFormHidden(true);
     } catch (error) {
       toast.error(error.message || "交易初始化失敗");
     } finally {
@@ -80,50 +77,72 @@ const Transaction = () => {
     }
   };
 
-  
   const handleSignTransaction = async () => {
+    if (isTransactionSubmitted || !transactionDetails) return;
+
+    setLoading(true);
     try {
       const response = await completeTransaction(
         transactionDetails.sender,
         transactionDetails.recipient,
         transactionDetails.amount,
-        transactionDetails.transactionHash
+        transactionDetails.transactionHash,
+        false // 不提交，只簽名
       );
-      setFinalSignature(response.signature);
-      setShowCompleteButton(false);
-      setShowFinalizeButton(true);
-      toast.success("簽名生成成功");
+
+      if (response.signature) {
+        setFinalSignature(response.signature);
+        setShowCompleteButton(false);
+        setShowFinalizeButton(true);
+        toast.success("簽名生成成功");
+      } else {
+        throw new Error("簽名未生成");
+      }
     } catch (error) {
       toast.error(error.message || "簽名失敗");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleFinalizeTransaction = async () => {
+    if (isTransactionSubmitted || !finalSignature) return;
+
+    setLoading(true);
     try {
       const response = await completeTransaction(
         transactionDetails.sender,
         transactionDetails.recipient,
         transactionDetails.amount,
-        transactionDetails.transactionHash
+        transactionDetails.transactionHash,
+        true // 最終提交
       );
-      setTransactionId(response.transactionId);
-      setShowFinalizeButton(false);
-      toast.success("交易完成");
+
+      if (response.transactionId) {
+        setTransactionId(response.transactionId);
+        setIsTransactionSubmitted(true);
+        setShowFinalizeButton(false);
+        toast.success("交易完成");
+      } else {
+        throw new Error("交易未完成");
+      }
     } catch (error) {
       toast.error(error.message || "交易完成失敗");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleShowTransactionHash = () => {
     setShowTransactionHash(true);
-    setShowPasswordInput(true); // 在這裡顯示密碼輸入框
+    setShowPasswordInput(true);
     toast.info("交易訊息摘要已顯示，請輸入密碼");
   };
 
   return (
     <div className="transaction-container">
       <h2>比特幣交易</h2>
-      {!formHidden && (  // 如果formHidden为false，显示表单
+      {!formHidden && (
         <>
           <div className="form-group">
             <label>從錢包地址</label>
@@ -172,7 +191,7 @@ const Transaction = () => {
           <p><strong>接收者：</strong> {transactionDetails.recipient}</p>
           <p><strong>發送金額：</strong> {transactionDetails.amount} BTC</p>
           {!showTransactionHash ? (
-            <button onClick={handleShowTransactionHash} className="show-hash-btn">
+            <button onClick={handleShowTransactionHash} className="show-hash-btn" disabled={loading}>
               交易訊息摘要
             </button>
           ) : (
@@ -188,8 +207,9 @@ const Transaction = () => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
           />
-          <button onClick={verifyPassword}>驗證</button>
+          <button onClick={verifyPassword} disabled={loading}>驗證</button>
         </div>
       )}
 
@@ -207,13 +227,29 @@ const Transaction = () => {
       )}
 
       {showCompleteButton && (
-        <button onClick={handleSignTransaction} className="complete-btn">
-          請點選按鈕進行簽名
-        </button>
+        <div className="key-lock-container">
+          <div
+            className="key"
+            draggable="true"
+            onDragStart={(e) => e.dataTransfer.setData('text/plain', 'key')}
+          >
+            🔑
+          </div>
+          <div
+            className="lock"
+            onDrop={(e) => {
+              e.preventDefault();
+              handleSignTransaction();
+            }}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            🔒
+          </div>
+        </div>
       )}
 
       {showFinalizeButton && (
-        <button onClick={handleFinalizeTransaction} className="finalize-btn">
+        <button onClick={handleFinalizeTransaction} className="finalize-btn" disabled={loading}>
           完成交易
         </button>
       )}
@@ -221,7 +257,7 @@ const Transaction = () => {
       {transactionId && (
         <div className="transaction-success">
           <p><strong>交易哈希值 (TxID)：</strong> {transactionId}</p>
-          <p><strong>交易成功</strong></p>
+          <p><strong>交易資料完成</strong></p>
         </div>
       )}
     </div>
