@@ -132,56 +132,6 @@ app.get("/wallets", (req, res) => {
 
 
 
-// 原有 /send-transaction 修改如下
-app.post("/send-transaction", verifyToken, async (req, res) => {
-  const { senderAddress, recipientAddress, amount } = req.body;
-  const userId = req.userId;
-
-  if (!senderAddress || !recipientAddress || !amount) {
-    return res.status(400).json({ message: "請提供發送地址、收款地址和金額" });
-  }
-
-  try {
-    const sql = "SELECT * FROM wallets WHERE user_id = ? AND address = ?";
-    db.query(sql, [userId, senderAddress], async (err, results) => {
-      if (err) return res.status(500).json({ message: "伺服器錯誤" });
-      if (results.length === 0) {
-        return res.status(404).json({ message: "未找到指定的發送錢包或無權限" });
-      }
-
-      const wallet = results[0];
-      const amountInBTC = parseFloat(amount);
-
-      if (wallet.balance === null || wallet.balance < amountInBTC) {
-        return res.status(400).json({ message: "餘額不足" });
-      }
-
-      // 建立交易內容
-      const transactionContent = {
-        senderAddress,
-        recipientAddress,
-        amount: amountInBTC,
-      };
-
-      // 生成交易訊息摘要（SHA-256）
-      const transactionHash = crypto.createHash('sha256')
-        .update(JSON.stringify(transactionContent))
-        .digest('hex');
-
-      // 這裡不直接簽名和完成交易，只返回初始數據
-      res.json({
-        message: "交易已初始化",
-        senderAddress,
-        recipientAddress,
-        amount: amountInBTC,
-        transactionHash,
-      });
-    });
-  } catch (error) {
-    console.error("交易處理錯誤:", error);
-    res.status(500).json({ message: "交易初始化失敗" });
-  }
-});
 
 app.post("/get-private-key", verifyToken, async (req, res) => {
   const { senderAddress, password } = req.body;
@@ -215,6 +165,64 @@ app.post("/get-private-key", verifyToken, async (req, res) => {
 });
 
 
+app.post("/send-transaction", verifyToken, async (req, res) => {
+  const { senderAddress, recipientAddress, amount } = req.body;
+  const userId = req.userId;
+
+  if (!senderAddress || !recipientAddress || !amount) {
+    return res.status(400).json({ message: "請提供發送地址、收款地址和金額" });
+  }
+
+  try {
+    const sql = "SELECT * FROM wallets WHERE user_id = ? AND address = ?";
+    db.query(sql, [userId, senderAddress], async (err, results) => {
+      if (err) return res.status(500).json({ message: "伺服器錯誤" });
+      if (results.length === 0) {
+        return res.status(404).json({ message: "未找到指定的發送錢包或無權限" });
+      }
+
+      const wallet = results[0];
+      const amountInBTC = parseFloat(amount);
+
+      if (wallet.balance === null || wallet.balance < amountInBTC) {
+        return res.status(400).json({ message: "餘額不足" });
+      }
+
+      // 加入時間戳
+      const timestamp = Date.now();
+
+      // 建立交易內容
+      const transactionContent = {
+        senderAddress,
+        recipientAddress,
+        amount: amountInBTC,
+        timestamp,
+      };
+
+      // 生成交易訊息摘要（單次 SHA-256）
+      const transactionHash = crypto.createHash('sha256')
+        .update(JSON.stringify(transactionContent))
+        .digest('hex');
+
+      // 返回初始數據
+      res.json({
+        message: "交易已初始化",
+        senderAddress,
+        recipientAddress,
+        amount: amountInBTC,
+        timestamp,
+        transactionHash, // 這是交易訊息摘要，不是最終 TxID
+      });
+    });
+  } catch (error) {
+    console.error("交易處理錯誤:", error);
+    res.status(500).json({ message: "交易初始化失敗" });
+  }
+});
+
+
+
+
 app.post("/complete-transaction", verifyToken, async (req, res) => {
   const { senderAddress, recipientAddress, amount, transactionHash, finalize } = req.body;
   const userId = req.userId;
@@ -233,7 +241,7 @@ app.post("/complete-transaction", verifyToken, async (req, res) => {
         return res.status(400).json({ message: "餘額不足" });
       }
 
-      // 生成簽名
+      // 生成簽名（基於傳入的 transactionHash）
       const message = new bitcore.Message(transactionHash);
       const signature = message.sign(privateKey);
 
@@ -241,22 +249,29 @@ app.post("/complete-transaction", verifyToken, async (req, res) => {
       const isValidSignature = message.verify(senderAddress, signature);
       if (!isValidSignature) return res.status(400).json({ message: "簽名無效" });
 
+      // 完整的交易內容（包括簽名）
+      const fullTransactionContent = {
+        senderAddress,
+        recipientAddress,
+        amount: amountInBTC,
+        timestamp: Date.now(), // 使用當前時間戳，或從前端傳入
+        signature,
+      };
+
+      // 序列化交易內容並生成最終 TxID（雙重 SHA-256）
+      const serializedTx = JSON.stringify(fullTransactionContent);
+      const firstHash = crypto.createHash('sha256').update(serializedTx).digest();
+      const finalTransactionHash = crypto.createHash('sha256').update(firstHash).digest('hex');
+
       if (!finalize) {
-        // 如果不是最終提交，只返回簽名
+        // 如果不是最終提交，只返回簽名和 TxID
         res.json({
           message: "簽名成功",
           signature,
+          transactionId: finalTransactionHash, // 返回最終 TxID
         });
       } else {
-        // 如果是最終提交，執行資料庫操作
-        const amountInSatoshis = Math.round(amountInBTC * 1e8);
-        const transaction = new bitcore.Transaction()
-          .to(recipientAddress, amountInSatoshis)
-          .change(senderAddress)
-          .sign(privateKey);
-
-        const transactionId = transaction.hash + "-" + Date.now();
-
+        // 執行交易並記錄
         db.beginTransaction((err) => {
           if (err) return res.status(500).json({ message: "事務啟動失敗" });
 
@@ -278,7 +293,7 @@ app.post("/complete-transaction", verifyToken, async (req, res) => {
                 INSERT INTO transactions (tx_hash, sender_address, recipient_address, amount, sender_public_key)
                 VALUES (?, ?, ?, ?, ?)
               `;
-              db.query(sqlInsertTransaction, [transactionId, senderAddress, recipientAddress, amountInBTC, wallet.public_key], (err) => {
+              db.query(sqlInsertTransaction, [finalTransactionHash, senderAddress, recipientAddress, amountInBTC, wallet.public_key], (err) => {
                 if (err) {
                   db.rollback(() => res.status(500).json({ message: "插入交易資料失敗" }));
                   return;
@@ -291,7 +306,7 @@ app.post("/complete-transaction", verifyToken, async (req, res) => {
                   }
                   res.json({
                     message: "交易成功",
-                    transactionId,
+                    transactionId: finalTransactionHash, // 使用最終 TxID
                     signature,
                   });
                 });
@@ -306,7 +321,6 @@ app.post("/complete-transaction", verifyToken, async (req, res) => {
     res.status(500).json({ message: "交易失敗" });
   }
 });
-
 
 
 // 啟動伺服器
