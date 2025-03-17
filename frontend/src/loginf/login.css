@@ -1,6 +1,6 @@
 /* 背景樣式 */
 :root{
-    background: linear-gradient(to right, #4a90e2, #7b4397);
+    background:rgb(183, 154, 154);
 }
 .login-container {
     display: flex;

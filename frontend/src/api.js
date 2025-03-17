@@ -58,12 +58,84 @@ export const registerUser = async (formData) => {
   }
 };
 
-export const NewAddress = async() => {
+export const NewAddress = async(userId) => {
   try {
-    const response = await axios.get(`${api_url}/newaddress`,{
-
+    const response = await axios.post(`${api_url}/newaddress`,{
+      userId:userId,
     });
+    return response.data;
   }catch(error){
     throw new Error("無法新增錢包地址");
+    
   }
 }
+
+export const sendTransaction = async (senderAddress, recipientAddress, amount) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${api_url}/send-transaction`,
+      { senderAddress, recipientAddress, amount },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '交易初始化失敗');
+  }
+};
+
+
+export const getPrivateKey = async (senderAddress, password) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${api_url}/get-private-key`,
+      { senderAddress, password },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '獲取私鑰失敗');
+  }
+};
+
+
+export const signTransaction = async (senderAddress, recipientAddress, amount, transactionHash) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${api_url}/sign-transaction`,
+      { senderAddress, recipientAddress, amount, transactionHash },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '簽名失敗');
+  }
+};
+
+export const completeTransaction = async (senderAddress, recipientAddress, amount, transactionHash, signature) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${api_url}/complete-transaction`,
+      { senderAddress, recipientAddress, amount, transactionHash, signature },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '完成交易失敗');
+  }
+};
+
+export const recoverWallet = async (mnemonic,userId) => {
+  try {
+    const response = await axios.post(`${api_url}/recover-wallet`, {
+      mnemonic: mnemonic,
+      userId:userId
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
