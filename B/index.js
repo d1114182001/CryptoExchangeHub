@@ -323,6 +323,77 @@ app.post("/complete-transaction", verifyToken, async (req, res) => {
 });
 
 
+
+
+
+
+// 忘記密碼 API
+app.post("/forgot-password", (req, res) => {
+  const { username, email, phone } = req.body;
+
+  // 檢查是否提供了所有必要欄位
+  if (!username || !email || !phone) {
+    return res.status(400).json({ message: "請提供帳號、電子郵件和電話" });
+  }
+
+  // 檢查使用者是否存在且帳號、電子郵件和電話匹配
+  const sql = "SELECT * FROM users WHERE username = ? AND email = ? AND phone = ?";
+  db.query(sql, [username, email, phone], (err, results) => {
+    if (err) {
+      console.error("資料庫查詢錯誤:", err);
+      return res.status(500).json({ message: "伺服器錯誤" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: "未找到匹配的帳號、電子郵件或電話" });
+    }
+
+    const user = results[0];
+
+    // 生成重置密碼的 JWT 令牌，1 小時有效
+    const resetToken = jwt.sign(
+      { userId: user.id },
+      "your_jwt_secret",
+      { expiresIn: "1h" }
+    );
+
+    // 返回重置密碼的連結
+    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
+    res.json({ message: "密碼重置連結已生成", resetLink });
+  });
+});
+
+// 重置密碼 API
+app.post("/reset-password", (req, res) => {
+  const { token, newPassword } = req.body;
+
+  // 檢查是否提供了 token 和新密碼
+  if (!token || !newPassword) {
+    return res.status(400).json({ message: "請提供重置令牌和新密碼" });
+  }
+
+  // 驗證 JWT 令牌
+  jwt.verify(token, "your_jwt_secret", async (err, decoded) => {
+    if (err) {
+      console.error("JWT 驗證失敗:", err);
+      return res.status(400).json({ message: "無效或過期的重置令牌" });
+    }
+
+    const userId = decoded.userId;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // 更新使用者密碼
+    const updateSql = "UPDATE users SET password = ? WHERE id = ?";
+    db.query(updateSql, [hashedPassword, userId], (err) => {
+      if (err) {
+        console.error("密碼更新錯誤:", err);
+        return res.status(500).json({ message: "密碼更新失敗" });
+      }
+      res.json({ message: "密碼重置成功" });
+    });
+  });
+});
+
+
 // 啟動伺服器
 app.listen(3001,"0.0.0.0", () => {
   console.log('服务器运行在 http://localhost:3001');
