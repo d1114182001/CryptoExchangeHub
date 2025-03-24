@@ -161,7 +161,6 @@ app.get("/wallets", (req, res) => {
   });
 });
 
-
 // 原有 /send-transaction 修改如下
 app.post("/send-transaction", verifyToken, async (req, res) => {
   const { senderAddress, recipientAddress, amount } = req.body;
@@ -187,11 +186,15 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
         return res.status(400).json({ message: "餘額不足" });
       }
 
+      // 加入時間戳
+      const timestamp = Date.now();
+
       // 建立交易內容
       const transactionContent = {
         senderAddress,
         recipientAddress,
         amount: amountInBTC,
+        timestamp,
       };
 
       // 生成交易訊息摘要（SHA-256）
@@ -205,6 +208,7 @@ app.post("/send-transaction", verifyToken, async (req, res) => {
         senderAddress,
         recipientAddress,
         amount: amountInBTC,
+        timestamp,
         transactionHash,
       });
     });
@@ -248,7 +252,7 @@ app.post("/get-private-key", verifyToken, async (req, res) => {
 });
 
 app.post("/sign-transaction", verifyToken, (req, res) => {
-  const { senderAddress, recipientAddress, amount, transactionHash } = req.body;
+  const { senderAddress, recipientAddress, amount, transactionHash,finalize } = req.body;
   const userId = req.userId;
 
   const sqlSender = "SELECT * FROM addresses WHERE user_id = ? AND address = ?";
@@ -277,258 +281,30 @@ app.post("/sign-transaction", verifyToken, (req, res) => {
       return res.status(400).json({ message: "簽名無效" });
     }
 
-    res.json({
-      message: "簽名成功",
+    // 完整的交易內容（包括簽名）
+    const fullTransactionContent = {
+      senderAddress,
+      recipientAddress,
+      amount: amountInBTC,
+      timestamp: Date.now(), // 使用當前時間戳，或從前端傳入
       signature,
-    });
+    };
+
+    // 序列化交易內容並生成最終 TxID（雙重 SHA-256）
+    const serializedTx = JSON.stringify(fullTransactionContent);
+    const firstHash = crypto.createHash('sha256').update(serializedTx).digest();
+    const finalTransactionHash = crypto.createHash('sha256').update(firstHash).digest('hex');
+
+    if (!finalize) {
+      // 如果不是最終提交，只返回簽名和 TxID
+      res.json({
+        message: "簽名成功",
+        signature,
+        transactionId: finalTransactionHash, // 返回最終 TxID
+      });
+    }
   });
 });
-
-/*app.post("/complete-transaction", verifyToken, (req, res) => {
-  const { senderAddress, recipientAddress, amount, transactionHash } = req.body;
-  const userId = req.userId;
-
-  // 查詢發送者地址
-  const sqlSender = "SELECT * FROM addresses WHERE user_id = ? AND address = ?";
-  db.query(sqlSender, [userId, senderAddress], (err, senderResults) => {
-    if (err) {
-      console.error("查詢發送者錯誤:", err);
-      return res.status(500).json({ message: "伺服器錯誤" });
-    }
-    if (senderResults.length === 0) {
-      return res.status(404).json({ message: "發送錢包不存在" });
-    }
-
-    const wallet = senderResults[0];
-    if (wallet.is_locked === 1) {
-      return res.status(400).json({ message: "該地址正在處理交易，請稍後重試" });
-    }
-    const privateKey = new bitcore.PrivateKey(wallet.private_key);
-    const amountInBTC = parseFloat(amount);
-
-    if (wallet.balance < amountInBTC) {
-      return res.status(400).json({ message: "餘額不足" });
-    }
-
-    // 生成簽名
-    const message = new bitcore.Message(transactionHash);
-    const signature = message.sign(privateKey);
-    const isValidSignature = message.verify(senderAddress, signature);
-    if (!isValidSignature) {
-      return res.status(400).json({ message: "簽名無效" });
-    }
-
-    // 構建交易
-    const amountInSatoshis = Math.round(amountInBTC * 1e8);
-    const transaction = new bitcore.Transaction()
-      .to(recipientAddress, amountInSatoshis)
-      .change(senderAddress)
-      .sign(privateKey);
-    const transactionId = transaction.hash;
-
-    // 開始事務
-    db.beginTransaction((err) => {
-      if (err) {
-        console.error("事務啟動失敗:", err);
-        return res.status(500).json({ message: "事務啟動失敗" });
-      }
-
-      // 鎖定發送者地址
-      const sqlLockSender = "UPDATE addresses SET is_locked = 1 WHERE address = ? AND is_locked = 0";
-      db.query(sqlLockSender, [senderAddress], (err, lockResult) => {
-        if (err) {
-          db.rollback(() => {
-            console.error("鎖定地址失敗:", err);
-            res.status(500).json({ message: "鎖定地址失敗" });
-          });
-          return;
-        }
-        if (lockResult.affectedRows === 0) {
-          db.rollback(() => {
-            console.log(`地址 ${senderAddress} 已鎖定，拒絕重複交易`);
-            res.status(400).json({ message: "該地址正在處理其他交易" });
-          });
-          return;
-        }
-
-        // 更新發送者餘額
-        const sqlUpdateSender = "UPDATE addresses SET balance = balance - ? WHERE address = ?";
-        console.log(`更新發送者：${senderAddress}, 減少=${amountInBTC}`);
-        db.query(sqlUpdateSender, [amountInBTC, senderAddress], (err) => {
-          if (err) {
-            db.rollback(() => {
-              console.error("更新發送餘額失敗:", err);
-              res.status(500).json({ message: "更新發送餘額失敗" });
-            });
-            return;
-          }
-
-          // 更新接收者餘額
-          const sqlUpdateRecipient = "UPDATE addresses SET balance = balance + ? WHERE address = ?";
-          console.log(`更新接收者：${recipientAddress}, 增加=${amountInBTC}`);
-          db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err) => {
-            if (err) {
-              db.rollback(() => {
-                console.error("更新接收餘額失敗:", err);
-                res.status(500).json({ message: "更新接收餘額失敗" });
-              });
-              return;
-            }
-
-            // 提交事務
-            db.commit((err) => {
-              if (err) {
-                db.rollback(() => {
-                  console.error("事務提交失敗:", err);
-                  res.status(500).json({ message: "事務提交失敗" });
-                });
-                return;
-              }
-
-              // 解鎖發送者地址
-              const sqlUnlockSender = "UPDATE addresses SET is_locked = 0 WHERE address = ?";
-              db.query(sqlUnlockSender, [senderAddress], (err) => {
-                if (err) {
-                  console.error("解鎖地址失敗:", err);
-                  // 已提交，不回滾，但記錄錯誤
-                }
-
-                res.json({
-                  message: "交易成功",
-                  transactionId,
-                  signature,
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-  });
-});*/
-
-/*app.post("/complete-transaction", verifyToken, async (req, res) => {
-  const { senderAddress, recipientAddress, amount, transactionHash } = req.body;
-  const userId = req.userId;
-
-  try {
-    //const sqlSender = "SELECT * FROM wallets WHERE user_id = ? AND address = ?";
-    const sqlSender = "SELECT * FROM addresses WHERE user_id = ? AND address = ?";
-    db.query(sqlSender, [userId, senderAddress], async (err, senderResults) => {
-      if (err) return res.status(500).json({ message: "伺服器錯誤" });
-      if (senderResults.length === 0) return res.status(404).json({ message: "發送錢包不存在" });
-
-      const wallet = senderResults[0];
-      const privateKey = new bitcore.PrivateKey(wallet.private_key);
-
-      const amountInBTC = parseFloat(amount);
-      if (wallet.balance < amountInBTC) return res.status(400).json({ message: "餘額不足" });
-
-      // 生成簽名（後端負責）
-      const message = new bitcore.Message(transactionHash);
-      const signature = message.sign(privateKey);
-
-      // 驗證簽名（可選，確認簽名有效）
-      const isValidSignature = message.verify(senderAddress, signature);
-      if (!isValidSignature) return res.status(400).json({ message: "簽名無效" });
-
-      const amountInSatoshis = Math.round(amountInBTC * 1e8);
-      const transaction = new bitcore.Transaction()
-        .to(recipientAddress, amountInSatoshis)
-        .change(senderAddress)
-        .sign(privateKey);
-      const transactionId = transaction.hash;
-
-      db.beginTransaction((err) => {
-        if (err) return res.status(500).json({ message: "事務啟動失敗" });
-
-        const sqlUpdateSender = "UPDATE addresses SET balance = balance - ? WHERE address = ?";
-        db.query(sqlUpdateSender, [amountInBTC, senderAddress], (err) => {
-          if (err) {
-            db.rollback(() => res.status(500).json({ message: "更新發送餘額失敗" }));
-            return;
-          }
-
-          //const sqlUpdateRecipient = "UPDATE wallets SET balance = balance + ? WHERE address = ?";
-          const sqlUpdateRecipient = "UPDATE addresses SET balance = balance + ? WHERE address = ?";
-          db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err) => {
-            if (err) {
-              db.rollback(() => res.status(500).json({ message: "更新接收餘額失敗" }));
-              return;
-            }
-
-            db.commit((err) => {
-              if (err) {
-                db.rollback(() => res.status(500).json({ message: "事務提交失敗" }));
-                return;
-              }
-              res.json({
-                message: "交易成功",
-                transactionId,
-                signature, // 返回後端生成的簽名
-              });
-            });
-          });
-        });
-      });
-    });
-  } catch (error) {
-    console.error("完成交易錯誤:", error);
-    res.status(500).json({ message: "交易失敗" });
-  }
-});*/
-
-/*app.post("/newaddress",(req,res) => {
-  //seach mysql ，先找註記詞
-  const userId = req.body.userId;
-  console.log("接收到的 userId:", userId);
-  let mnemonics,newPath,address,privatekey,publickey,walletId;
-  
-  const mnemonic_sql = "select id,mnemonic from wallets where user_id = ?";
-  db.query(mnemonic_sql,[userId],(err, results) => {
-    if (err) {
-      console.error('查詢失敗:', err);
-      res.status(500).json({ error: '查詢路徑失敗' });
-      return;
-    };
-    mnemonics = results[0].mnemonic;
-    walletId = results[0].id;
-    console.log(mnemonics);
-  
-  });
-  const sql = "SELECT paths FROM addresses WHERE user_id = ? ORDER BY id DESC LIMIT 1";
-  db.query(sql,[userId],(err, rows) => {
-    if (err) {
-      console.error('查詢失敗:', err);
-      res.status(500).json({ error: '查詢路徑失敗' });
-      return;
-    };
-    const mnemonic = new Mnemonic(mnemonics);
-    const seed = mnemonic.toSeed();
-    const root = bitcore.HDPrivateKey.fromSeed(seed);
-    const currentPath = rows.length > 0 ? rows[0].paths : "m/44'/0'/0'/0/0";
-    const pathParts = currentPath.split('/');
-    const currentIndex = parseInt(pathParts[pathParts.length - 1]);
-    const nextIndex = currentIndex + 1;
-    newPath = pathParts.slice(0, -1).join('/') + '/' + nextIndex;
-
-    // 派生新地址
-    const derived = root.derive(newPath);
-    address = derived.privateKey.toAddress().toString();
-    privatekey =derived.privateKey.toWIF();
-    publickey = derived.publicKey.toString('hex');
-    
-    console.log(address);
-
-  });
-  //新地址儲存
-  const newaddrsql = "INSERT INTO addresses (wallet_id,paths,address,private_key,public_key,user_id) VALUES (?, ?, ?, ?, ?, ?)";
-  db.query(newaddrsql, [walletId, newPath, address, privatekey, publickey,userId], (err) => {
-    if (err) return res.status(500).json({ error: "Failed to insert address." }); 
-    res.json({address}); 
-  });
-  
-}); */
 
 app.post("/newaddress", (req, res) => {
   const userId = req.body.userId;
@@ -592,93 +368,73 @@ app.post("/newaddress", (req, res) => {
 });
 
 app.post("/complete-transaction", verifyToken, (req, res) => {
-  const { senderAddress, recipientAddress, amount, transactionHash, signature } = req.body;
+  const { senderAddress, recipientAddress, amount, finalTransactionHash,signature,finalize } = req.body;
   const userId = req.userId;
-
-  const sqlSender = "SELECT * FROM addresses WHERE user_id = ? AND address = ?";
-  db.query(sqlSender, [userId, senderAddress], (err, senderResults) => {
-    if (err) {
-      console.error("查詢發送者錯誤:", err);
-      return res.status(500).json({ message: "伺服器錯誤" });
-    }
-    if (senderResults.length === 0) {
-      return res.status(404).json({ message: "發送錢包不存在" });
-    }
-
-    const wallet = senderResults[0];
-    const privateKey = new bitcore.PrivateKey(wallet.private_key);
-    const amountInBTC = parseFloat(amount);
-
-    if (wallet.balance < amountInBTC) {
-      return res.status(400).json({ message: "餘額不足" });
-    }
-
-    // 驗證簽名
-    const message = new bitcore.Message(transactionHash);
-    const isValidSignature = message.verify(senderAddress, signature);
-    if (!isValidSignature) {
-      return res.status(400).json({ message: "簽名無效" });
-    }
-
-    // 構建交易
-    const amountInSatoshis = Math.round(amountInBTC * 1e8);
-    const transaction = new bitcore.Transaction()
-      .to(recipientAddress, amountInSatoshis)
-      .change(senderAddress)
-      .sign(privateKey);
-    const transactionId = transaction.hash;
-
-    // 開始事務
-    db.beginTransaction((err) => {
+  if(!finalize) return res.status(500).json({message:"沒有雙重簽名"});
+  try{
+    const sqlSender = "SELECT * FROM addresses WHERE user_id = ? AND address = ?";
+    db.query(sqlSender, [userId, senderAddress], (err, senderResults) => {
       if (err) {
-        console.error("事務啟動失敗:", err);
-        return res.status(500).json({ message: "事務啟動失敗" });
+        console.error("查詢發送者錯誤:", err);
+        return res.status(500).json({ message: "伺服器錯誤" });
+      }
+      if (senderResults.length === 0) {
+        return res.status(404).json({ message: "發送錢包不存在" });
       }
 
-      // 更新發送者餘額
-      const sqlUpdateSender = "UPDATE addresses SET balance = balance - ? WHERE address = ?";
-      console.log(`更新發送者：${senderAddress}, 減少=${amountInBTC}`);
-      db.query(sqlUpdateSender, [amountInBTC, senderAddress], (err) => {
-        if (err) {
-          db.rollback(() => {
-            console.error("更新發送餘額失敗:", err);
-            res.status(500).json({ message: "更新發送餘額失敗" });
-          });
-          return;
-        }
+      const wallet = senderResults[0];
+      const privateKey = new bitcore.PrivateKey(wallet.private_key);
+      const amountInBTC = parseFloat(amount);
 
-        // 更新接收者餘額
-        const sqlUpdateRecipient = "UPDATE addresses SET balance = balance + ? WHERE address = ?";
-        console.log(`更新接收者：${recipientAddress}, 增加=${amountInBTC}`);
-        db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err) => {
+      if (wallet.balance < amountInBTC) {
+        return res.status(400).json({ message: "餘額不足" });
+      }
+
+      db.beginTransaction((err) => {
+        if (err) return res.status(500).json({ message: "事務啟動失敗" });
+
+        const sqlUpdateSender = "UPDATE addresses SET balance = balance - ? WHERE address = ?";
+        db.query(sqlUpdateSender, [amountInBTC, senderAddress], (err) => {
           if (err) {
-            db.rollback(() => {
-              console.error("更新接收餘額失敗:", err);
-              res.status(500).json({ message: "更新接收餘額失敗" });
-            });
+            db.rollback(() => res.status(500).json({ message: "更新發送餘額失敗" }));
             return;
           }
 
-          // 提交事務
-          db.commit((err) => {
+          const sqlUpdateRecipient = "UPDATE addresses SET balance = balance + ? WHERE address = ?";
+          db.query(sqlUpdateRecipient, [amountInBTC, recipientAddress], (err) => {
             if (err) {
-              db.rollback(() => {
-                console.error("事務提交失敗:", err);
-                res.status(500).json({ message: "事務提交失敗" });
-              });
+              db.rollback(() => res.status(500).json({ message: "更新接收餘額失敗" }));
               return;
             }
 
-            res.json({
-              message: "交易成功",
-              transactionId,
-              signature,
+            const sqlInsertTransaction = "INSERT INTO transactions (tx_hash, sender_address, recipient_address, amount, sender_public_key) VALUES (?, ?, ?, ?, ?)";
+            db.query(sqlInsertTransaction, [finalTransactionHash, senderAddress, recipientAddress, amountInBTC, wallet.public_key], (err) => {
+              if (err) {
+                db.rollback(() => res.status(500).json({ message: "插入交易資料失敗" }));
+                return;
+              }
+
+              db.commit((err) => {
+                if (err) {
+                  db.rollback(() => res.status(500).json({ message: "事務提交失敗" }));
+                  return;
+                }
+                res.json({
+                  message: "交易成功",
+                  transactionId: finalTransactionHash, // 使用最終 TxID
+                  signature,
+                });
+              });
             });
           });
         });
       });
     });
-  });
+  }catch(error){
+    console.error("完成交易錯誤:", error);
+    res.status(500).json({ message: "交易失敗" });
+  }
+  
 });
 
 app.post('/recover-wallet', (req, res) => {
@@ -730,6 +486,83 @@ app.post('/recover-wallet', (req, res) => {
     res.status(500).json({ error: '恢復錢包失敗' });
   }
 });
+
+// 忘記密碼 API
+app.post("/forgot-password", (req, res) => {
+  const { username, email, phone } = req.body;
+
+  // 檢查是否提供了所有必要欄位
+  if (!username || !email || !phone) {
+    return res.status(400).json({ message: "請提供帳號、電子郵件和電話" });
+  }
+
+  // 檢查使用者是否存在且帳號、電子郵件和電話匹配
+  const sql = "SELECT * FROM users WHERE username = ? AND email = ? AND phone = ?";
+  db.query(sql, [username, email, phone], (err, results) => {
+    if (err) {
+      console.error("資料庫查詢錯誤:", err);
+      return res.status(500).json({ message: "伺服器錯誤" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: "未找到匹配的帳號、電子郵件或電話" });
+    }
+
+    const user = results[0];
+
+    // 生成重置密碼的 JWT 令牌，1 小時有效
+    const resetToken = jwt.sign(
+      { userId: user.id },
+      "your_jwt_secret",
+      { expiresIn: "1h" }
+    );
+
+    // 返回重置密碼的連結
+    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
+    res.json({ message: "密碼重置連結已生成", resetLink });
+  });
+});
+
+// 重置密碼 API
+app.post("/reset-password", (req, res) => {
+  const { token, newPassword } = req.body;
+
+  // 檢查是否提供了 token 和新密碼
+  if (!token || !newPassword) {
+    return res.status(400).json({ message: "請提供重置令牌和新密碼" });
+  }
+
+  // 驗證 JWT 令牌
+  jwt.verify(token, "your_jwt_secret", async (err, decoded) => {
+    if (err) {
+      console.error("JWT 驗證失敗:", err);
+      return res.status(400).json({ message: "無效或過期的重置令牌" });
+    }
+
+    const userId = decoded.userId;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // 更新使用者密碼
+    const updateSql = "UPDATE users SET password = ? WHERE id = ?";
+    db.query(updateSql, [hashedPassword, userId], (err) => {
+      if (err) {
+        console.error("密碼更新錯誤:", err);
+        return res.status(500).json({ message: "密碼更新失敗" });
+      }
+      res.json({ message: "密碼重置成功" });
+    });
+  });
+});
+
+app.get('/extract-transactions', (req, res) => {
+  db.query('SELECT * FROM transactions', (err, results) => {
+    if (err) {
+      console.error('獲取交易紀錄錯誤:', err);
+      return res.status(500).send('伺服器錯誤');
+    }
+    res.json(results);
+  });
+});
+
 
 // 啟動伺服器
 app.listen(3001, () => {

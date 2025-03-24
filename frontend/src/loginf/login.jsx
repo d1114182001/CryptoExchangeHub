@@ -68,6 +68,11 @@ function Login() {
                 <p className="register-link">
                     Don't have an account? <span onClick={() => navigate('/register')} className="link">Register here</span>
                 </p>
+
+                {/* 添加忘记密码链接 */}
+                <p className="forgot-password-link">
+                    <span onClick={() => navigate('/forgot-password')} className="link">Forgot password?</span>
+                </p>
             </form>
         </div>
     );

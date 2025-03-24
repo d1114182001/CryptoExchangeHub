@@ -23,6 +23,7 @@ const Transaction = () => {
   const [showFinalizeButton, setShowFinalizeButton] = useState(false);
   const [showTransactionHash, setShowTransactionHash] = useState(false);
   const [formHidden, setFormHidden] = useState(false); // 控制表单是否隐藏
+  const [isTransactionSubmitted, setIsTransactionSubmitted] = useState(false);
 
 
   useEffect(() => {
@@ -50,15 +51,16 @@ const Transaction = () => {
     setLoading(true);
     try {
       const response = await sendTransaction(senderAddress, recipientAddress, amount);
+      // 獲取當前時間並格式化
+      const timestamp = new Date().toLocaleString();
       setTransactionDetails({
         sender: response.senderAddress,
         recipient: response.recipientAddress,
         amount: response.amount,
         transactionHash: response.transactionHash,
+        timestamp: timestamp // 添加時間戳
       });
       toast.success("交易已初始化");
-
-      // 交易初始化成功后，隐藏表单并显示交易详情
       setFormHidden(true); 
     } catch (error) {
       toast.error(error.message || "交易初始化失敗");
@@ -82,36 +84,59 @@ const Transaction = () => {
 
   
   const handleSignTransaction = async () => {
+    if (isTransactionSubmitted || !transactionDetails) return;
+    setLoading(true);
     try {
       const response = await signTransaction(
         transactionDetails.sender,
         transactionDetails.recipient,
         transactionDetails.amount,
-        transactionDetails.transactionHash
+        transactionDetails.transactionHash,
+        false // 不提交，只簽名
       );
-      setFinalSignature(response.signature);
-      setShowCompleteButton(false);
-      setShowFinalizeButton(true);
-      toast.success("簽名生成成功");
+      
+      if (response.signature) {
+        setFinalSignature(response.signature);
+        setShowCompleteButton(false);
+        setShowFinalizeButton(true);
+        toast.success("簽名生成成功");
+      } else {
+        throw new Error("簽名未生成");
+      }
+
     } catch (error) {
       toast.error(error.message || "簽名失敗");
+    }finally {
+      setLoading(false);
     }
   };
 
   const handleFinalizeTransaction = async () => {
+    if (isTransactionSubmitted || !finalSignature) return;
+    setLoading(true);
     try {
       const response = await completeTransaction(
         transactionDetails.sender,
         transactionDetails.recipient,
         transactionDetails.amount,
         transactionDetails.transactionHash,
-        finalSignature
+        finalSignature,
+        true // 最終提交
       );
-      setTransactionId(response.transactionId);
-      setShowFinalizeButton(false);
-      toast.success("交易完成");
+      
+      if (response.transactionId) {
+        setTransactionId(response.transactionId);
+        setIsTransactionSubmitted(true);
+        setShowFinalizeButton(false);
+        toast.success("交易完成");
+      } else {
+        throw new Error("交易未完成");
+      }
+
     } catch (error) {
       toast.error(error.message || "交易完成失敗");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -172,6 +197,7 @@ const Transaction = () => {
           <p><strong>發送者：</strong> {transactionDetails.sender}</p>
           <p><strong>接收者：</strong> {transactionDetails.recipient}</p>
           <p><strong>發送金額：</strong> {transactionDetails.amount} BTC</p>
+          <p><strong>發送時間：</strong> {transactionDetails.timestamp}</p>
           {!showTransactionHash ? (
             <button onClick={handleShowTransactionHash} className="show-hash-btn">
               交易訊息摘要
@@ -208,9 +234,25 @@ const Transaction = () => {
       )}
 
       {showCompleteButton && (
-        <button onClick={handleSignTransaction} className="complete-btn">
-          請點選按鈕進行簽名
-        </button>
+        <div className="key-lock-container">
+          <div
+            className="key"
+            draggable="true"
+            onDragStart={(e) => e.dataTransfer.setData('text/plain', 'key')}
+          >
+            🔑
+          </div>
+          <div
+            className="lock"
+            onDrop={(e) => {
+              e.preventDefault();
+              handleSignTransaction();
+            }}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            🔒
+          </div>
+        </div>
       )}
 
       {showFinalizeButton && (
@@ -222,7 +264,7 @@ const Transaction = () => {
       {transactionId && (
         <div className="transaction-success">
           <p><strong>交易哈希值 (TxID)：</strong> {transactionId}</p>
-          <p><strong>交易成功</strong></p>
+          <p><strong>交易資料完成</strong></p>
         </div>
       )}
     </div>

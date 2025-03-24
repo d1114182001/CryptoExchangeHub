@@ -100,12 +100,12 @@ export const getPrivateKey = async (senderAddress, password) => {
 };
 
 
-export const signTransaction = async (senderAddress, recipientAddress, amount, transactionHash) => {
+export const signTransaction = async (senderAddress, recipientAddress, amount, transactionHash,finalize = false) => {
   try {
     const token = localStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/sign-transaction`,
-      { senderAddress, recipientAddress, amount, transactionHash },
+      { senderAddress, recipientAddress, amount, transactionHash,finalize },
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
@@ -114,12 +114,12 @@ export const signTransaction = async (senderAddress, recipientAddress, amount, t
   }
 };
 
-export const completeTransaction = async (senderAddress, recipientAddress, amount, transactionHash, signature) => {
+export const completeTransaction = async (senderAddress, recipientAddress, amount, finalTransactionHash,signature,finalize) => {
   try {
     const token = localStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/complete-transaction`,
-      { senderAddress, recipientAddress, amount, transactionHash, signature },
+      { senderAddress, recipientAddress, amount,finalTransactionHash,signature,finalize },
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
@@ -137,5 +137,32 @@ export const recoverWallet = async (mnemonic,userId) => {
     return response.data;
   } catch (error) {
     throw new Error(error);
+  }
+};
+
+// 忘記密碼請求
+export const requestPasswordReset = async (username, email, phone) => {
+  try {
+    const response = await axios.post(`${api_url}/forgot-password`, {
+      username,
+      email,
+      phone,
+    });
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '無法請求重置密碼，請稍後再試。');
+  }
+};
+
+// 重置密碼
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const response = await axios.post(`${api_url}/reset-password`, {
+      token,
+      newPassword,
+    });
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '重置密碼失敗，請稍後再試。');
   }
 };

@@ -69,7 +69,8 @@ const Wallet = () => {
         <Link to="import" className="">導入錢包</Link>
         <Link to="backup" className="">備份錢包</Link>
         <Link to="restore" className="">還原錢包</Link>
-        <Link to="encrypt" className="w">加密錢包</Link> 
+        <Link to="encrypt" className="w">加密錢包</Link>
+        <Link to="/concourse" className="">進入交易大廳</Link> 
       </div>
       <div className="wallet-container">
         <h1>💰 我的錢包</h1>

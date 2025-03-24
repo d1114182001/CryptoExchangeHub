@@ -2,14 +2,16 @@ import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom"; 
 
 import Wallet from "./pages/Wallet";
 import CreateWallet from "./Wallet/CreateWallet";
-
+import ForgotPassword from "./register/forgot-password";
+import ResetPassword from "./register/reset-password";
 import ImportWallet from "./Wallet/ImportWallet";
 import BackupWallet from "./Wallet/BackupWallet";
 import RestoreWallet from "./Wallet/RestoreWallet";
 import EncryptWallet from "./Wallet/EncryptWallet";
 import Login from "./loginf/login"; // 导入 Login 组件
 import Register from "./register/register"; // 导入 Register 组件
-import Transaction from "./Transaction/Transaction"; 
+import Transaction from "./Transaction/Transaction";
+import Concourse from "./Concourse/Concourse"; // 引入交易大廳組件 
 
 const router = createBrowserRouter([
   {
@@ -18,7 +20,8 @@ const router = createBrowserRouter([
     children: [
       { path: "", element: <Login /> }, // 首页为 Login 页面
       { path: "register", element: <Register /> },
-      { path: "transaction/:address", element: <Transaction /> },  
+      { path: "transaction/:address", element: <Transaction /> }, 
+      { path: "concourse", element: <Concourse /> }, //加入交易大廳路由 
       {
         path: "wallet",
         element: <WalletLayout />, // Wallet 內部管理自己的子路由
@@ -31,6 +34,8 @@ const router = createBrowserRouter([
           { path: "encrypt", element: <EncryptWallet /> },
         ],
       },
+      { path: "forgot-password", element: <ForgotPassword /> },
+      { path: "reset-password", element: <ResetPassword /> },
     ],
   },
 ]);
