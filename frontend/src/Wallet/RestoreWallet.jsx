@@ -26,7 +26,7 @@ const RestoreWallet = () => {
         <textarea
           value={mnemonic}
           onChange={(e) => setMnemonic(e.target.value)}
-          placeholder="輸入 12 或 24 個單詞的助記詞"
+          placeholder="輸入 12 個單詞的助記詞"
           rows="2"
           cols="50"
         />

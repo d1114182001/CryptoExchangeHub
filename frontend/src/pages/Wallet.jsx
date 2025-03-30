@@ -66,10 +66,8 @@ const Wallet = () => {
 
       <div className="navwallet">
         <Link to="create" className="">創建新錢包</Link>
-        <Link to="import" className="">導入錢包</Link>
-        <Link to="backup" className="">備份錢包</Link>
+        {/*<Link to="import" className="">導入錢包</Link>*/}
         <Link to="restore" className="">還原錢包</Link>
-        <Link to="encrypt" className="w">加密錢包</Link>
         <Link to="/concourse" className="">進入交易大廳</Link> 
       </div>
       <div className="wallet-container">

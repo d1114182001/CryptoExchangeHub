@@ -4,10 +4,9 @@ import Wallet from "./pages/Wallet";
 import CreateWallet from "./Wallet/CreateWallet";
 import ForgotPassword from "./register/forgot-password";
 import ResetPassword from "./register/reset-password";
-import ImportWallet from "./Wallet/ImportWallet";
-import BackupWallet from "./Wallet/BackupWallet";
+//import ImportWallet from "./Wallet/ImportWallet";
 import RestoreWallet from "./Wallet/RestoreWallet";
-import EncryptWallet from "./Wallet/EncryptWallet";
+
 import Login from "./loginf/login"; // 导入 Login 组件
 import Register from "./register/register"; // 导入 Register 组件
 import Transaction from "./Transaction/Transaction";
@@ -28,10 +27,8 @@ const router = createBrowserRouter([
         children: [
           { path: "", element: <Wallet /> },
           { path: "create", element: <CreateWallet /> },      
-          { path: "import", element: <ImportWallet /> },
-          { path: "backup", element: <BackupWallet /> },
+          //{ path: "import", element: <ImportWallet /> },
           { path: "restore", element: <RestoreWallet /> },
-          { path: "encrypt", element: <EncryptWallet /> },
         ],
       },
       { path: "forgot-password", element: <ForgotPassword /> },
