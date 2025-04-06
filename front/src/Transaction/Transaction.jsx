@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams,useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { sendTransaction, getAllWallets, getPrivateKey, completeTransaction } from '../api';
+import { sendTransaction, getAllWallets, getPrivateKey, completeTransaction, signTransaction } from '../api';
 import "./Transaction.css";
-import { useNavigate } from "react-router-dom";
+
 
 const Transaction = () => {
   const { address } = useParams();
@@ -22,13 +22,16 @@ const Transaction = () => {
   const [transactionId, setTransactionId] = useState('');
   const [showFinalizeButton, setShowFinalizeButton] = useState(false);
   const [showTransactionHash, setShowTransactionHash] = useState(false);
-  const [formHidden, setFormHidden] = useState(false);
+  const [formHidden, setFormHidden] = useState(false); // 控制表单是否隐藏
   const [isTransactionSubmitted, setIsTransactionSubmitted] = useState(false);
+  const navigate = useNavigate();
+  const [showBackButton, setShowBackButton] = useState(false); 
+
 
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const walletData = await getAllWallets(token);
         setWallets(walletData);
         if (!senderAddress && walletData.length > 0) {
@@ -60,7 +63,7 @@ const Transaction = () => {
         timestamp: timestamp // 添加時間戳
       });
       toast.success("交易已初始化");
-      setFormHidden(true);
+      setFormHidden(true); 
     } catch (error) {
       toast.error(error.message || "交易初始化失敗");
     } finally {
@@ -81,19 +84,19 @@ const Transaction = () => {
     }
   };
 
+  
   const handleSignTransaction = async () => {
     if (isTransactionSubmitted || !transactionDetails) return;
-
     setLoading(true);
     try {
-      const response = await completeTransaction(
+      const response = await signTransaction(
         transactionDetails.sender,
         transactionDetails.recipient,
         transactionDetails.amount,
         transactionDetails.transactionHash,
         false // 不提交，只簽名
       );
-
+      
       if (response.signature) {
         setFinalSignature(response.signature);
         setShowCompleteButton(false);
@@ -102,16 +105,16 @@ const Transaction = () => {
       } else {
         throw new Error("簽名未生成");
       }
+
     } catch (error) {
       toast.error(error.message || "簽名失敗");
-    } finally {
+    }finally {
       setLoading(false);
     }
   };
 
   const handleFinalizeTransaction = async () => {
     if (isTransactionSubmitted || !finalSignature) return;
-
     setLoading(true);
     try {
       const response = await completeTransaction(
@@ -119,17 +122,20 @@ const Transaction = () => {
         transactionDetails.recipient,
         transactionDetails.amount,
         transactionDetails.transactionHash,
+        finalSignature,
         true // 最終提交
       );
-
+      
       if (response.transactionId) {
         setTransactionId(response.transactionId);
         setIsTransactionSubmitted(true);
         setShowFinalizeButton(false);
+        setShowBackButton(true);
         toast.success("交易完成");
       } else {
         throw new Error("交易未完成");
       }
+
     } catch (error) {
       toast.error(error.message || "交易完成失敗");
     } finally {
@@ -139,22 +145,18 @@ const Transaction = () => {
 
   const handleShowTransactionHash = () => {
     setShowTransactionHash(true);
-    setShowPasswordInput(true);
+    setShowPasswordInput(true); // 在這裡顯示密碼輸入框
     toast.info("交易訊息摘要已顯示，請輸入密碼");
   };
 
-  const navigate = useNavigate();
-
-    // 交易完成後跳轉交易大廳
-  const handleGoToConcourse = () => {
-    navigate("/concourse");
+  const handleBackToWallet = () => {
+    navigate('/wallet'); // 跳到我的錢包頁面
   };
-
 
   return (
     <div className="transaction-container">
       <h2>比特幣交易</h2>
-      {!formHidden && (
+      {!formHidden && (  // 如果formHidden为false，顯示表單
         <>
           <div className="form-group">
             <label>從錢包地址</label>
@@ -204,7 +206,7 @@ const Transaction = () => {
           <p><strong>發送金額：</strong> {transactionDetails.amount} BTC</p>
           <p><strong>發送時間：</strong> {transactionDetails.timestamp}</p>
           {!showTransactionHash ? (
-            <button onClick={handleShowTransactionHash} className="show-hash-btn" disabled={loading}>
+            <button onClick={handleShowTransactionHash} className="show-hash-btn">
               交易訊息摘要
             </button>
           ) : (
@@ -220,9 +222,8 @@ const Transaction = () => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
           />
-          <button onClick={verifyPassword} disabled={loading}>驗證</button>
+          <button onClick={verifyPassword}>驗證</button>
         </div>
       )}
 
@@ -262,7 +263,7 @@ const Transaction = () => {
       )}
 
       {showFinalizeButton && (
-        <button onClick={handleFinalizeTransaction} className="finalize-btn" disabled={loading}>
+        <button onClick={handleFinalizeTransaction} className="finalize-btn">
           完成交易
         </button>
       )}
@@ -274,8 +275,10 @@ const Transaction = () => {
         </div>
       )}
 
-      {transactionId && (
-        <button onClick={handleGoToConcourse} className="concourse-btn">前往交易大廳</button>
+      {showBackButton && (
+        <button onClick={handleBackToWallet} className="finalize-btn">
+          回到我的錢包
+        </button>
       )}
     </div>
   );

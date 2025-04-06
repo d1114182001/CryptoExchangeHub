@@ -8,7 +8,7 @@ const Concourse = () => {
 
     useEffect(() => {
         const fetchTransactions = () => {
-            fetch("http://100.120.185.39:3001/extract-transactions")
+            fetch("http://localhost:3001/extract-transactions")
                 .then((res) => res.json())
                 .then((data) => setTransactions(data))
                 .catch((error) => console.error("載入交易紀錄錯誤:", error));

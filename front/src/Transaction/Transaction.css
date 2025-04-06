@@ -78,14 +78,11 @@
   
   .password-input input {
     margin-top: 5px;
-    max-width: 100%;
-    box-sizing: border-box;
   }
   
   .show-hash-btn, .complete-btn, .finalize-btn {
     margin-top: 10px;
   }
-
   .key-lock-container {
     display: flex;
     align-items: center;
@@ -119,4 +116,3 @@
   .lock:hover {
     border-color: #28a745;
   }
-  

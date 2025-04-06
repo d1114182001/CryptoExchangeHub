@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 导入 useNavigate
-import { loginUser } from '../api'; // 导入 api.js 中的 loginUser 函数
-import './login.css'; // 引入登录样式
+import { useNavigate } from 'react-router-dom'; // 引入 useNavigate
+import { loginUser } from '../api'; // 引入 api.js 中的 loginUser 函數
+import './login.css'; // 引入登入css
 
 function Login() {
     const [username, setUsername] = useState('');
@@ -10,7 +10,7 @@ function Login() {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const navigate = useNavigate(); // 创建 navigate 实例
+    const navigate = useNavigate(); // 創建 navigate 實例
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -21,8 +21,8 @@ function Login() {
         try {
             const data = await loginUser(username, password); // 调用 api.js 中的函数
             setSuccess(data.message || 'Login successful!');
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('userId', data.userId); // 存储 userId
+            sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('userId', data.userId); // 存储 userId
             // 登录成功后跳转到钱包管理页面
             navigate('/wallet');
         } catch (err) {
@@ -64,12 +64,12 @@ function Login() {
                     {loading ? 'Logging in...' : 'Login'}
                 </button>
 
-                {/* 添加注册链接 */}
+                {/* 添加註冊連結 */}
                 <p className="register-link">
                     Don't have an account? <span onClick={() => navigate('/register')} className="link">Register here</span>
                 </p>
 
-                {/* 添加忘记密码链接 */}
+                {/* 添加忘记密碼連結 */}
                 <p className="forgot-password-link">
                     <span onClick={() => navigate('/forgot-password')} className="link">Forgot password?</span>
                 </p>
@@ -79,4 +79,3 @@ function Login() {
 }
 
 export default Login;
-

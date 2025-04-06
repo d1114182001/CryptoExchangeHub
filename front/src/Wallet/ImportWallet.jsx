@@ -2,8 +2,12 @@ import React from 'react'
 
 const ImportWallet = () => {
   return (
-    <div>ImportWallet</div>
-  )
+    <div>
+      <div className='title'>ImportWallet</div>
+      
+    </div>
+    
+  );
 }
 
 export default ImportWallet
