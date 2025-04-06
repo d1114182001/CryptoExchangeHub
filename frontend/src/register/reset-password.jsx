@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { resetPassword } from "../api"; // 假設 api.js 在 src/register 下
+import { resetPassword } from "../api"; 
 
 const ResetPassword = () => {
   const location = useLocation();

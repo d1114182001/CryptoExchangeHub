@@ -124,7 +124,7 @@ app.post("/create-wallet", (req, res) => {
     const walletsql = "INSERT INTO wallets (user_id, mnemonic) VALUES (?, ?)";
     db.query(walletsql, [user_id, mnemonic2], (err,result) => {
       if (err) return res.status(500).json({ error: "Failed to create wallet." });
-      const walletId = result.insertId; // 取得新插入的 wallet ID
+      const walletId = result.insertId; // 取得新增加的 wallet ID
       
 
       const addrsql ="INSERT INTO addresses (wallet_id,paths,address,private_key,public_key,user_id) VALUES (?, ?, ?, ?, ?, ?)";
@@ -142,21 +142,21 @@ app.post("/create-wallet", (req, res) => {
 
 // 取得特定使用者的錢包 API 
 app.get("/wallets", (req, res) => {
-  // 从请求头中获取 JWT token
+  // 從請求中獲取 JWT token
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "未提供授權標頭" });
 
-  // 验证 token
+  // 驗證 token
   jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret", (err, decoded) => {
     if (err) return res.status(401).json({ message: "無效的授權標頭" });
 
-    const userId = decoded.userId; // 获取用户 ID
+    const userId = decoded.userId; // 獲取用户 ID
 
-    // 根据用户 ID 查询钱包信息
+    // 根據用户 ID 查詢錢包訊息
     const sql = "SELECT * FROM addresses WHERE user_id = ?";
     db.query(sql, [userId], (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json(results); // 返回该用户的所有钱包信息
+      res.json(results); // 返回該用户的所有錢包訊息
     });
   });
 });
@@ -308,29 +308,27 @@ app.post("/sign-transaction", verifyToken, (req, res) => {
 
 app.post("/newaddress", (req, res) => {
   const userId = req.body.userId;
-  console.log("接收到的 userId:", userId);
 
-  // **🔵 1. 查询 mnemonic**
+  // 查詢 mnemonic
   const mnemonic_sql = "SELECT id, mnemonic FROM wallets WHERE user_id = ?";
   db.query(mnemonic_sql, [userId], (err, mnemonicResults) => {
     if (err) {
-      console.error("查询 mnemonic 失败:", err);
-      return res.status(500).json({ error: "查询 mnemonic 失败" });
+      console.error("查詢 mnemonic 失敗:", err);
+      return res.status(500).json({ error: "查詢 mnemonic 失敗" });
     }
     if (mnemonicResults.length === 0) {
-      return res.status(404).json({ error: "未找到用户的钱包助记词" });
+      return res.status(404).json({ error: "未找到用户的錢包助記詞" });
     }
 
     const mnemonics = mnemonicResults[0].mnemonic;
     const walletId = mnemonicResults[0].id;
-    console.log("助记词:", mnemonics);
-
-    // **🔵 2. 查询上一个地址路径**
+    
+    // 查詢上一个地址路徑(假設只有一個HD錢包)
     const sql = "SELECT paths FROM addresses WHERE user_id = ? ORDER BY id DESC LIMIT 1";
     db.query(sql, [userId], (err, rows) => {
       if (err) {
-        console.error("查询路径失败:", err);
-        return res.status(500).json({ error: "查询路径失败" });
+        console.error("查詢路徑失敗:", err);
+        return res.status(500).json({ error: "查詢路徑失敗" });
       }
 
       const mnemonic = new Mnemonic(mnemonics);
@@ -343,23 +341,23 @@ app.post("/newaddress", (req, res) => {
       const nextIndex = currentIndex + 1;
       const newPath = pathParts.slice(0, -1).join('/') + '/' + nextIndex;
 
-      // **🔵 3. 生成新地址**
+      // 生成新地址
       const derived = root.derive(newPath);
       const address = derived.privateKey.toAddress().toString();
       const privatekey = derived.privateKey.toWIF();
       const publickey = derived.publicKey.toString('hex');
 
-      console.log("新地址:", address);
+      
 
-      // **🔵 4. 插入数据库**
+      // 儲存到MYSQL
       const newaddrsql = `
         INSERT INTO addresses (wallet_id, paths, address, private_key, public_key, user_id) 
         VALUES (?, ?, ?, ?, ?, ?)
       `;
       db.query(newaddrsql, [walletId, newPath, address, privatekey, publickey, userId], (err) => {
         if (err) {
-          console.error("插入地址失败:", err);
-          return res.status(500).json({ error: "无法插入新地址" });
+          console.error("儲存地址失敗:", err);
+          return res.status(500).json({ error: "無法儲存新地址" });
         }
         res.json({ address });
       });
@@ -441,7 +439,7 @@ app.post('/recover-wallet', (req, res) => {
   try {
     const mnemonic = req.body.mnemonic;
     const userId = req.body.userId;
-    console.log(mnemonic);
+    
     if (!Mnemonic.isValid(mnemonic)) {
       return res.status(400).json({ error: '無效的助記詞' });
     }
@@ -449,8 +447,6 @@ app.post('/recover-wallet', (req, res) => {
     db.query(searchsql,[mnemonic],(err,result) =>{
       if (Array.isArray(result) && result.length > 0){
         res.status(500).json({message:'已存在錢包!'});
-        console.log('已存在');
-        console.log(result);
       }
       else{
         const mnemonicObj = new Mnemonic(mnemonic);
@@ -471,7 +467,6 @@ app.post('/recover-wallet', (req, res) => {
           });
         });
         
-
         res.json({
           address,
           mnemonic,
@@ -566,5 +561,5 @@ app.get('/extract-transactions', (req, res) => {
 
 // 啟動伺服器
 app.listen(3001, () => {
-  console.log('服务器运行在 http://localhost:3001');
+  console.log('服務器運行在 http://localhost:3001');
 });

@@ -9,7 +9,7 @@ function createHDWallet() {
 
     try {
         // 1. 生成助記詞 (12 或 24 個單詞)
-        const mnemonic = new Mnemonic(128); // 256 bits 產生 24 個單詞
+        const mnemonic = new Mnemonic("boring food defense oblige toss coach poem live fox furnace pluck wasp"); // 256 bits 產生 24 個單詞
         console.log('助記詞:', mnemonic.toString());
 
         // 2. 從助記詞生成種子
@@ -21,7 +21,7 @@ function createHDWallet() {
 
         // 4. 派生第一個帳戶的路徑 (m/44'/0'/0'/0/0)
         // 遵循 BIP-44 標準
-        const path = "m/44'/0'/0'/0/0";
+        const path = "m/44'/0'/0'/0/20";
         const derived = hdPrivateKey.deriveChild(path);
 
         // 5. 生成比特幣地址

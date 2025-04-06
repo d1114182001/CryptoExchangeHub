@@ -7,15 +7,15 @@ import "./Walletpage.css";
 
 const Wallet = () => {
   const [wallets, setWallets] = useState([]);
-  const [token, setToken] = useState(null); // 新增 token 状态
+  const [token, setToken] = useState(null); // 新增 token 状態
   const [address,setAddress] = useState("");
   const navigate = useNavigate();
   
-  // 从本地存储获取 token
+  // 從本地存取獲得 token
   useEffect(() => {
-    const storedToken = localStorage.getItem('token'); // 假设你在登录时将 token 存储在 localStorage 中
+    const storedToken = localStorage.getItem('token'); // 假設你在登錄時將 token 儲存在 localStorage 中
     if (storedToken) {
-      setToken(storedToken); // 设置 token
+      setToken(storedToken); // 設置 token
     }
   }, []);
 
@@ -31,13 +31,13 @@ const Wallet = () => {
     } catch (error) {
       toast.error(error.message); // 顯示錯誤訊息
     }
-  }, [token]); // 依赖 token
+  }, [token]); // 依賴 token
 
   useEffect(() => {
     if (token) {
       fetchWallets();
     }
-  }, [token, fetchWallets]); // 添加 fetchWallets 到依赖数组
+  }, [token, fetchWallets]); // 添加 fetchWallets 到依賴陣列
 
     // 跳轉到交易頁面，帶上錢包地址
   const handleTransaction = (address) => {
@@ -66,7 +66,6 @@ const Wallet = () => {
 
       <div className="navwallet">
         <Link to="create" className="">創建新錢包</Link>
-        {/*<Link to="import" className="">導入錢包</Link>*/}
         <Link to="restore" className="">還原錢包</Link>
         <Link to="/concourse" className="">進入交易大廳</Link> 
       </div>

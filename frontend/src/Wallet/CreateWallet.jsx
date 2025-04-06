@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { addWallet } from '../api'; // 确保路径正确
+import { addWallet } from '../api'; 
 
 function CreateWallet() {
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-
     const [mnemonic2, setMnemonic] = useState();
     const [address, setAddress] = useState();
 
@@ -13,7 +12,7 @@ function CreateWallet() {
         setLoading(true);
         setError(null);
 
-        const userId = localStorage.getItem('userId'); // 从 localStorage 获取 userId
+        const userId = localStorage.getItem('userId'); // 从 localStorage 獲取 userId
         if (!userId) {
             setError('User ID not found. Please log in again.');
             setLoading(false);
@@ -21,10 +20,9 @@ function CreateWallet() {
         }
 
         try {
-            const newWallet = await addWallet(userId); // 传递 userId
+            const newWallet = await addWallet(userId); // 傳送 userId
             setMnemonic(newWallet.mnemonic2);
             setAddress(newWallet.address);
-            //setWallet(newWallet);
         } catch (err) {
             setError('Failed to create wallet');
             console.error(err);

@@ -1,23 +1,22 @@
-import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom"; // 去掉 Link 的导入
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom"; 
 
 import Wallet from "./pages/Wallet";
 import CreateWallet from "./Wallet/CreateWallet";
 import ForgotPassword from "./register/forgot-password";
 import ResetPassword from "./register/reset-password";
-//import ImportWallet from "./Wallet/ImportWallet";
 import RestoreWallet from "./Wallet/RestoreWallet";
 
-import Login from "./loginf/login"; // 导入 Login 组件
-import Register from "./register/register"; // 导入 Register 组件
+import Login from "./loginf/login"; // 引入 Login
+import Register from "./register/register"; // 引入 Register 
 import Transaction from "./Transaction/Transaction";
-import Concourse from "./Concourse/Concourse"; // 引入交易大廳組件 
+import Concourse from "./Concourse/Concourse"; // 引入交易大廳 
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Layout />, // 在 `Layout` 加入全局导航列
+    element: <Layout />, // 在 `Layout` 加入全局導航列
     children: [
-      { path: "", element: <Login /> }, // 首页为 Login 页面
+      { path: "", element: <Login /> }, // 首頁為 Login 頁面
       { path: "register", element: <Register /> },
       { path: "transaction/:address", element: <Transaction /> }, 
       { path: "concourse", element: <Concourse /> }, //加入交易大廳路由 
@@ -27,7 +26,6 @@ const router = createBrowserRouter([
         children: [
           { path: "", element: <Wallet /> },
           { path: "create", element: <CreateWallet /> },      
-          //{ path: "import", element: <ImportWallet /> },
           { path: "restore", element: <RestoreWallet /> },
         ],
       },
@@ -58,19 +56,3 @@ const App = () => {
 };
 
 export default App;
-
-/*function Layout() {
-  return (
-    <div>
-      <nav className="bg-gray-800 p-4 text-white flex justify-between">
-        <Link to="/" className="font-bold text-lg">Home</Link>
-        <div className="flex gap-4">
-          <Link to="/register" className="hover:underline">註冊</Link> 
-          <Link to="/wallet" className="hover:underline">錢包管理</Link>
-        </div>
-      </nav>
-      <Outlet />
-    </div>
-  );
-}
-*/

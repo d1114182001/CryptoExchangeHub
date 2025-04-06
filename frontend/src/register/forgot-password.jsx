@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { requestPasswordReset } from "../api"; // 假設 API 檔案名為 api.js
+import { requestPasswordReset } from "../api"; 
 
 const ForgotPassword = () => {
   const [username, setUsername] = useState("");

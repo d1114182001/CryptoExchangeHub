@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { registerUser } from '../api'; // 导入 registerUser 函数
+import { registerUser } from '../api'; // 引入 registerUser 函數
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ export default function Register() {
         e.preventDefault();
 
         try {
-            const data = await registerUser(formData); // 调用 registerUser
+            const data = await registerUser(formData); // 調用 registerUser
             setMessage(data.message);
         } catch (error) {
             setMessage(error.message);

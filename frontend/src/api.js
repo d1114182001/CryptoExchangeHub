@@ -16,14 +16,13 @@ export const loginUser = async (username, password) => {
   }
 }
 
-// api.js
 export const addWallet = async (userId) => {
-  const response = await fetch(`${api_url}/create-wallet`, { // 更新这里的 URL
+  const response = await fetch(`${api_url}/create-wallet`, { // 更新这裡的 URL
       method: 'POST',
       headers: {
           'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ user_id: userId }), // 发送 user_id
+      body: JSON.stringify({ user_id: userId }), // 發送 user_id
   });
 
   if (!response.ok) {
@@ -38,7 +37,7 @@ export const getAllWallets = async (token) => {
   try {
     const response = await axios.get(`${api_url}/wallets`, {
       headers: {
-        'Authorization': `Bearer ${token}`, // 在请求头中添加 Authorization
+        'Authorization': `Bearer ${token}`, // 在Header添加 Authorization
       },
     });
     return response.data;

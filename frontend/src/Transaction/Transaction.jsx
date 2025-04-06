@@ -149,7 +149,7 @@ const Transaction = () => {
   return (
     <div className="transaction-container">
       <h2>比特幣交易</h2>
-      {!formHidden && (  // 如果formHidden为false，显示表单
+      {!formHidden && (  // 如果formHidden为false，顯示表單
         <>
           <div className="form-group">
             <label>從錢包地址</label>
