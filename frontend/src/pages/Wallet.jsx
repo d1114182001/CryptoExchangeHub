@@ -54,6 +54,9 @@ const Wallet = () => {
     try {
       const data = await NewAddress(userId);
       setAddress(data.address);
+      setTimeout(() => {
+        fetchWallets();
+      }, 2000);
     } catch (err) {
       console.log("Failed to get mnemonic!!!");
       console.error(err);

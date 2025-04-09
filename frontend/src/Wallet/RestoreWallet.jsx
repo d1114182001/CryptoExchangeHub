@@ -25,7 +25,7 @@ const RestoreWallet = () => {
   useEffect(() => {
     if (wallet) {
       const timer = setTimeout(() => {
-        navigate('/wallet'); // 10 秒後跳轉到 /wallet
+        navigate('/wallet'); 
       }, 10000); // 10000 毫秒 = 10 秒
 
       // 清除計時器，防止內存洩漏
