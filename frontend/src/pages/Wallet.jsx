@@ -13,7 +13,7 @@ const Wallet = () => {
   
   // 從本地存取獲得 token
   useEffect(() => {
-    const storedToken = localStorage.getItem('token'); // 假設你在登錄時將 token 儲存在 localStorage 中
+    const storedToken = sessionStorage.getItem('token'); // 假設你在登錄時將 token 儲存在 sessionStorage 中
     if (storedToken) {
       setToken(storedToken); // 設置 token
     }
@@ -45,7 +45,7 @@ const Wallet = () => {
   };
 
   const generateAddress = async () => {
-    const userId = localStorage.getItem('userId'); 
+    const userId = sessionStorage.getItem('userId'); 
     if (!userId) {
       console.log('User ID not found. Please log in again.');
       return;

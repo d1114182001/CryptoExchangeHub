@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
+import { useNavigate} from "react-router-dom";
 import { addWallet } from '../api'; 
 
 function CreateWallet() {
-    const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [mnemonic2, setMnemonic] = useState();
     const [address, setAddress] = useState();
 
+    const navigate = useNavigate();
+
     const handleCreateWallet = async () => {
         setLoading(true);
         setError(null);
 
-        const userId = localStorage.getItem('userId'); // 从 localStorage 獲取 userId
+        const userId = sessionStorage.getItem('userId'); 
         if (!userId) {
             setError('User ID not found. Please log in again.');
             setLoading(false);
@@ -29,6 +31,10 @@ function CreateWallet() {
         }
 
         setLoading(false);
+    };
+
+    const handleBackToWallet = () => {
+        navigate('/wallet'); 
     };
 
     return (
@@ -53,17 +59,7 @@ function CreateWallet() {
                 </div>
             )}
 
-            
-            {/*wallet && (
-                <div>
-                    <h3>Wallet Created:</h3>
-                    <p><strong>Address:</strong> {wallet.address}</p>
-                    <p><strong>Public Key:</strong> {wallet.publicKey}</p>
-                    <p><strong>Private Key:</strong> {wallet.privateKey}</p>
-                    <p><strong>Memoric:</strong></p>
-                    
-                </div>
-            )*/}
+            <button onClick={handleBackToWallet}>回到錢包</button>
         </div>
     );
 }

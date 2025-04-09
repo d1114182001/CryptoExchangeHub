@@ -19,11 +19,11 @@ function Login() {
         setLoading(true);
 
         try {
-            const data = await loginUser(username, password); // 调用 api.js 中的函数
+            const data = await loginUser(username, password); // 調用 api.js 中的函數
             setSuccess(data.message || 'Login successful!');
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('userId', data.userId); // 存储 userId
-            // 登录成功后跳转到钱包管理页面
+            sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('userId', data.userId); 
+            // 登錄成功后跳轉到錢包管理頁面
             navigate('/wallet');
         } catch (err) {
             setError(err.message || 'Login failed');

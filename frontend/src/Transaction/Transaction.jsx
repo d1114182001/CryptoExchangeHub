@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams,useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { sendTransaction, getAllWallets, getPrivateKey, completeTransaction, signTransaction } from '../api';
 import "./Transaction.css";
@@ -24,12 +24,14 @@ const Transaction = () => {
   const [showTransactionHash, setShowTransactionHash] = useState(false);
   const [formHidden, setFormHidden] = useState(false); // 控制表单是否隐藏
   const [isTransactionSubmitted, setIsTransactionSubmitted] = useState(false);
+  const navigate = useNavigate();
+  const [showBackButton, setShowBackButton] = useState(false); 
 
 
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const walletData = await getAllWallets(token);
         setWallets(walletData);
         if (!senderAddress && walletData.length > 0) {
@@ -128,6 +130,7 @@ const Transaction = () => {
         setTransactionId(response.transactionId);
         setIsTransactionSubmitted(true);
         setShowFinalizeButton(false);
+        setShowBackButton(true);
         toast.success("交易完成");
       } else {
         throw new Error("交易未完成");
@@ -144,6 +147,10 @@ const Transaction = () => {
     setShowTransactionHash(true);
     setShowPasswordInput(true); // 在這裡顯示密碼輸入框
     toast.info("交易訊息摘要已顯示，請輸入密碼");
+  };
+
+  const handleBackToWallet = () => {
+    navigate('/wallet'); // 跳到我的錢包頁面
   };
 
   return (
@@ -266,6 +273,12 @@ const Transaction = () => {
           <p><strong>交易哈希值 (TxID)：</strong> {transactionId}</p>
           <p><strong>交易資料完成</strong></p>
         </div>
+      )}
+
+      {showBackButton && (
+        <button onClick={handleBackToWallet} className="finalize-btn">
+          回到我的錢包
+        </button>
       )}
     </div>
   );

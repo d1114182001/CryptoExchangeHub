@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
+import { useNavigate } from 'react-router-dom';
 import { recoverWallet } from '../api';
 
 const RestoreWallet = () => {
   const [mnemonic, setMnemonic] = useState('');
   const [wallet, setWallet] = useState(null);
   const [error, setError] = useState('');
-  const userId = localStorage.getItem('userId'); 
+  const userId = sessionStorage.getItem('userId'); 
+  const navigate = useNavigate();
+
   const handleRecover = async () => {
     
     try {
@@ -17,6 +20,18 @@ const RestoreWallet = () => {
       setWallet(null);
     }
   };
+
+  // 當 wallet 更新時觸發跳轉
+  useEffect(() => {
+    if (wallet) {
+      const timer = setTimeout(() => {
+        navigate('/wallet'); // 10 秒後跳轉到 /wallet
+      }, 10000); // 10000 毫秒 = 10 秒
+
+      // 清除計時器，防止內存洩漏
+      return () => clearTimeout(timer);
+    }
+  }, [wallet, navigate]); // 監聽 wallet 和 navigate
 
   return (
     <div>
@@ -37,8 +52,9 @@ const RestoreWallet = () => {
       {wallet && (
         <div>
           <h3>恢復的錢包資訊</h3>
-          <p>地址: {wallet.address}</p>
-          <p>助記詞: {wallet.mnemonic}</p>
+          <h4>地址: {wallet.address}</h4>
+          <h4>助記詞: {wallet.mnemonic}</h4>
+          <p style={{color:'red',fontSize:30,}}>一旦成功，本頁將在10秒內跳轉!!</p>
         </div>
       )}
     </div>
