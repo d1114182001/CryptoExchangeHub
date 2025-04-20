@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { registerUser } from '../api'; // 引入 registerUser 函數
 import { useNavigate } from 'react-router-dom'; 
+import './r.css';
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -32,16 +33,46 @@ export default function Register() {
     };
 
     return (
-        <div>
-            <h2>註冊</h2>
-            <form onSubmit={handleSubmit}>
-                <input type="text" name="username" placeholder="帳號" onChange={handleChange} required />
-                <input type="password" name="password" placeholder="密碼" onChange={handleChange} required />
-                <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
-                <input type="text" name="phone" placeholder="手機號碼" onChange={handleChange} required />
-                <button type="submit">註冊</button>
-            </form>
-            {message && <p>{message}</p>}
+        <div className="register-wrapper">
+            <div className="register-container">
+                <h2>註冊</h2>
+                <form onSubmit={handleSubmit} className="register-form">
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="帳號"
+                        onChange={handleChange}
+                        required
+                        className="register-input"
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="密碼"
+                        onChange={handleChange}
+                        required
+                        className="register-input"
+                    />
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="Email"
+                        onChange={handleChange}
+                        required
+                        className="register-input"
+                    />
+                    <input
+                        type="text"
+                        name="phone"
+                        placeholder="手機號碼"
+                        onChange={handleChange}
+                        required
+                        className="register-input"
+                    />
+                    <button type="submit" className="register-button">註冊</button>
+                </form>
+                {message && <p className="register-message">{message}</p>}
+            </div>
         </div>
     );
 }

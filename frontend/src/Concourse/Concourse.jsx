@@ -28,42 +28,40 @@ const Concourse = () => {
     );
 
     return (
-        <div className="concourse-container">
-            <Link to="/wallet" className="wallet-btn">回到我的錢包</Link>
-
-            <h2>交易大廳</h2>
-            
-            {/* 搜尋輸入框 */}
-            <input
-                type="text"
-                placeholder="搜尋交易哈希、發送者或接收者"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-            />
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>交易哈希</th>
-                        <th>發送者</th>
-                        <th>接收者</th>
-                        <th>金額 (BTC)</th>
-                        <th>時間</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredTransactions.map((tx, index) => (
-                        <tr key={index}>
-                            <td>{tx.tx_hash.substring(0, 10) + "..."}</td>
-                            <td>{tx.sender_address.substring(0, 6) + "..."}</td>
-                            <td>{tx.recipient_address.substring(0, 6) + "..."}</td>
-                            <td>{tx.amount}</td>
-                            <td>{tx.timestamp}</td>
+        <div className="concourse-wrapper">
+            <div className="concourse-container">
+                <Link to="/wallet" className="wallet-btn">回到我的錢包</Link>
+                <h2>交易大廳</h2>
+                <input
+                    type="text"
+                    placeholder="搜尋交易哈希、發送者或接收者"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="search-input"
+                />
+                <table>
+                    <thead>
+                        <tr>
+                            <th>交易哈希</th>
+                            <th>發送者</th>
+                            <th>接收者</th>
+                            <th>金額 (BTC)</th>
+                            <th>時間</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {filteredTransactions.map((tx, index) => (
+                            <tr key={index}>
+                                <td>{tx.tx_hash.substring(0, 10) + "..."}</td>
+                                <td>{tx.sender_address.substring(0, 6) + "..."}</td>
+                                <td>{tx.recipient_address.substring(0, 6) + "..."}</td>
+                                <td>{tx.amount}</td>
+                                <td>{tx.timestamp}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

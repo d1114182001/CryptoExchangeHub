@@ -50,7 +50,7 @@ export const registerUser = async (formData) => {
   try {
     console.log("Submitting formData:", formData);
     const response = await axios.post(`${api_url}/register`, formData);
-    return response.data; // 返回响应数据
+    return response.data; 
   } catch (error) {
     console.error("注册请求错误:", error.response?.data || error.message);
     throw new Error(error.response?.data?.message || '註冊失敗，請稍後再試。');
@@ -71,7 +71,7 @@ export const NewAddress = async(userId) => {
 
 export const sendTransaction = async (senderAddress, recipientAddress, amount) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/send-transaction`,
       { senderAddress, recipientAddress, amount },
@@ -86,7 +86,7 @@ export const sendTransaction = async (senderAddress, recipientAddress, amount) =
 
 export const getPrivateKey = async (senderAddress, password) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/get-private-key`,
       { senderAddress, password },
@@ -101,7 +101,7 @@ export const getPrivateKey = async (senderAddress, password) => {
 
 export const signTransaction = async (senderAddress, recipientAddress, amount, transactionHash,finalize = false) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/sign-transaction`,
       { senderAddress, recipientAddress, amount, transactionHash,finalize },
@@ -115,7 +115,7 @@ export const signTransaction = async (senderAddress, recipientAddress, amount, t
 
 export const completeTransaction = async (senderAddress, recipientAddress, amount, finalTransactionHash,signature,finalize) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/complete-transaction`,
       { senderAddress, recipientAddress, amount,finalTransactionHash,signature,finalize },

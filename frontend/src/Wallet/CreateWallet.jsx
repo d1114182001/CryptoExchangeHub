@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate} from "react-router-dom";
 import { addWallet } from '../api'; 
+import "./C.css";
 
 function CreateWallet() {
     const [loading, setLoading] = useState(false);
@@ -38,28 +39,27 @@ function CreateWallet() {
     };
 
     return (
-        <div>
-            <h2>Create New Wallet</h2>
-            <button onClick={handleCreateWallet} disabled={loading}>
-                {loading ? 'Creating...' : 'Create Wallet'}
-            </button>
-
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            {mnemonic2 && (
-                <div>
-                    <h3>助記詞：</h3>
-                    <p>{mnemonic2}</p>
-                </div>
-            )}
-            
-            {address && (
-                <div>
-                    <h3>地址：</h3>
-                    <p>{address}</p>
-                </div>
-            )}
-
-            <button onClick={handleBackToWallet}>回到錢包</button>
+        <div className="create-wallet-wrapper">
+            <div className="create-wallet">
+                <h2>創建新錢包</h2>
+                <button onClick={handleCreateWallet} disabled={loading}>
+                    {loading ? '創建中...' : '創建錢包'}
+                </button>
+                {error && <p className="error">{error}</p>}
+                {mnemonic2 && (
+                    <div className="mnemonic">
+                        <h3>助記詞：</h3>
+                        <p>{mnemonic2}</p>
+                    </div>
+                )}
+                {address && (
+                    <div className="address">
+                        <h3>地址：</h3>
+                        <p>{address}</p>
+                    </div>
+                )}
+                <button onClick={handleBackToWallet}>回到錢包</button>
+            </div>
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { recoverWallet } from '../api';
+import './R.css';
 
 const RestoreWallet = () => {
   const [mnemonic, setMnemonic] = useState('');
@@ -21,44 +22,44 @@ const RestoreWallet = () => {
     }
   };
 
-  // 當 wallet 更新時觸發跳轉
   useEffect(() => {
     if (wallet) {
       const timer = setTimeout(() => {
         navigate('/wallet'); 
-      }, 10000); // 10000 毫秒 = 10 秒
+      }, 10000); 
 
-      // 清除計時器，防止內存洩漏
       return () => clearTimeout(timer);
     }
-  }, [wallet, navigate]); // 監聽 wallet 和 navigate
+  }, [wallet, navigate]); 
 
   return (
-    <div>
-      <h2>恢復 HD 錢包</h2>
-      <div>
-        <label>輸入助記詞:</label>
-        <textarea
-          value={mnemonic}
-          onChange={(e) => setMnemonic(e.target.value)}
-          placeholder="輸入 12 個單詞的助記詞"
-          rows="2"
-          cols="50"
-        />
-      </div>
-      <button onClick={handleRecover}>恢復錢包</button>
-
-      {error && <p style={{ color: 'red' }}>錯誤: {error}</p>}
-      {wallet && (
-        <div>
-          <h3>恢復的錢包資訊</h3>
-          <h4>地址: {wallet.address}</h4>
-          <h4>助記詞: {wallet.mnemonic}</h4>
-          <p style={{color:'red',fontSize:30,}}>一旦成功，本頁將在10秒內跳轉!!</p>
+    <div className="restore-wallet-wrapper">
+      <div className="restore-wallet">
+        <h2>恢復 HD 錢包</h2>
+        <div className="form-group">
+          <label>輸入助記詞:</label>
+          <textarea
+            className="mnemonic-input"
+            value={mnemonic}
+            onChange={(e) => setMnemonic(e.target.value)}
+            placeholder="輸入 12 個單詞的助記詞"
+            rows="2"
+            cols="50"
+          />
         </div>
-      )}
+        <button onClick={handleRecover}>恢復錢包</button>
+        {error && <p className="error">錯誤: {error}</p>}
+        {wallet && (
+          <div className="wallet-info">
+            <h3>恢復的錢包資訊</h3>
+            <p>地址: {wallet.address}</p>
+            <p>助記詞: {wallet.mnemonic}</p>
+            <p className="jump-notice">一旦成功，本頁將在10秒內跳轉!!</p>
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }
 
 export default RestoreWallet

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { resetPassword } from "../api"; 
+import './rp.css';
 
 const ResetPassword = () => {
   const location = useLocation();
@@ -8,7 +9,6 @@ const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  // 從 URL 中獲取令牌
   const queryParams = new URLSearchParams(location.search);
   const token = queryParams.get("token");
 
@@ -30,22 +30,24 @@ const ResetPassword = () => {
   };
 
   return (
-    <div>
-      <h2>重置密碼</h2>
-      <form onSubmit={handleResetPassword}>
-        <div>
-          <label>新密碼:</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">提交新密碼</button>
-      </form>
-
-      {message && <p>{message}</p>}
+    <div className="reset-password-wrapper">
+      <div className="reset-password-container">
+        <h2>重置密碼</h2>
+        <form onSubmit={handleResetPassword} className="reset-password-form">
+          <div className="form-group">
+            <label>新密碼:</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              className="reset-password-input"
+            />
+          </div>
+          <button type="submit" className="reset-password-button">提交新密碼</button>
+        </form>
+        {message && <p className="reset-password-message">{message}</p>}
+      </div>
     </div>
   );
 };
