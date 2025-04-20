@@ -1,0 +1,91 @@
+.forgot-password-wrapper {
+    background: linear-gradient(135deg, #000000 0%, #f5f5f5 100%);
+    min-height: 100vh; /* 覆蓋整個視窗 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .forgot-password-container {
+    max-width: 90vw;
+    width: 800px;
+    margin: 40px auto;
+    padding: 24px;
+    background-color: #f5f5f5; /* 淺灰容器 */
+    border-radius: 12px;
+  }
+  
+  .forgot-password-container h2 {
+    font-size: 24px;
+    color: #1c1c1c;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  
+  .forgot-password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .forgot-password-form .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .forgot-password-form label {
+    font-size: 14px;
+    color: #1c1c1c;
+    margin-bottom: 8px;
+  }
+  
+  .forgot-password-input {
+    width: 100%;
+    padding: 12px;
+    background-color: #e5e5e5; /* 灰色輸入框 */
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #1c1c1c;
+  }
+  
+  .forgot-password-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #333333; /* 深灰按鈕 */
+    color: #ffffff;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .forgot-password-button:disabled {
+    background-color: #999999;
+    cursor: not-allowed;
+  }
+  
+  .forgot-password-message,
+  .loading-message,
+  .completion-message {
+    font-size: 14px;
+    color: #1c1c1c; /* 普通訊息用黑色 */
+    margin-top: 16px;
+    text-align: center;
+    word-break: break-all; /* 確保長訊息換行 */
+    overflow-wrap: break-word;
+  }
+  
+  .forgot-password-message:empty,
+  .loading-message:empty {
+    display: none; /* 隱藏空訊息 */
+  }
+  
+  .forgot-password-message a.reset-link {
+    color: #007bff; /* 藍色連結 */
+    text-decoration: underline;
+    word-break: break-all; /* 長連結自動換行 */
+    overflow-wrap: break-word;
+    display: inline-block; /* 確保連結換行正常 */
+    max-width: 100%; /* 限制連結寬度 */
+  }

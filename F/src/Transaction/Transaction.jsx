@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { sendTransaction, getAllWallets, getPrivateKey, completeTransaction } from '../api';
+import { sendTransaction, getAllWallets, getPrivateKey, completeTransaction, signTransaction } from '../api';
 import "./Transaction.css";
 
 const Transaction = () => {
@@ -23,11 +23,13 @@ const Transaction = () => {
   const [showTransactionHash, setShowTransactionHash] = useState(false);
   const [formHidden, setFormHidden] = useState(false);
   const [isTransactionSubmitted, setIsTransactionSubmitted] = useState(false);
+  const navigate = useNavigate();
+  const [showBackButton, setShowBackButton] = useState(false);
 
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const walletData = await getAllWallets(token);
         setWallets(walletData);
         if (!senderAddress && walletData.length > 0) {
@@ -45,18 +47,16 @@ const Transaction = () => {
       toast.error("請選擇發送地址並填寫接收地址和金額");
       return;
     }
-
     setLoading(true);
     try {
       const response = await sendTransaction(senderAddress, recipientAddress, amount);
-      // 獲取當前時間並格式化
       const timestamp = new Date().toLocaleString();
       setTransactionDetails({
         sender: response.senderAddress,
         recipient: response.recipientAddress,
         amount: response.amount,
         transactionHash: response.transactionHash,
-        timestamp: timestamp // 添加時間戳
+        timestamp: timestamp
       });
       toast.success("交易已初始化");
       setFormHidden(true);
@@ -82,17 +82,15 @@ const Transaction = () => {
 
   const handleSignTransaction = async () => {
     if (isTransactionSubmitted || !transactionDetails) return;
-
     setLoading(true);
     try {
-      const response = await completeTransaction(
+      const response = await signTransaction(
         transactionDetails.sender,
         transactionDetails.recipient,
         transactionDetails.amount,
         transactionDetails.transactionHash,
-        false // 不提交，只簽名
+        false
       );
-
       if (response.signature) {
         setFinalSignature(response.signature);
         setShowCompleteButton(false);
@@ -110,7 +108,6 @@ const Transaction = () => {
 
   const handleFinalizeTransaction = async () => {
     if (isTransactionSubmitted || !finalSignature) return;
-
     setLoading(true);
     try {
       const response = await completeTransaction(
@@ -118,13 +115,14 @@ const Transaction = () => {
         transactionDetails.recipient,
         transactionDetails.amount,
         transactionDetails.transactionHash,
-        true // 最終提交
+        finalSignature,
+        true
       );
-
       if (response.transactionId) {
         setTransactionId(response.transactionId);
         setIsTransactionSubmitted(true);
         setShowFinalizeButton(false);
+        setShowBackButton(true);
         toast.success("交易完成");
       } else {
         throw new Error("交易未完成");
@@ -142,128 +140,169 @@ const Transaction = () => {
     toast.info("交易訊息摘要已顯示，請輸入密碼");
   };
 
+  const handleBackToWallet = () => {
+    navigate('/wallet');
+  };
+
   return (
-    <div className="transaction-container">
-      <h2>比特幣交易</h2>
-      {!formHidden && (
-        <>
-          <div className="form-group">
-            <label>從錢包地址</label>
-            <select value={senderAddress} onChange={(e) => setSenderAddress(e.target.value)} disabled={loading}>
-              {wallets.map((wallet) => (
-                <option key={wallet.address} value={wallet.address}>
-                  {wallet.address} (餘額: {wallet.balance} BTC)
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="transaction-wrapper">
+      <div className="transaction-container">
+        <h2>比特幣交易</h2>
 
-          <div className="form-group">
-            <label>接收者地址</label>
-            <input
-              type="text"
-              value={recipientAddress}
-              onChange={(e) => setRecipientAddress(e.target.value)}
-              placeholder="輸入接收者的比特幣地址"
+        {/* Form Section */}
+        {!formHidden && (
+          <div className="transaction-form">
+            <div className="form-group">
+              <label>從錢包地址</label>
+              <select
+                value={senderAddress}
+                onChange={(e) => setSenderAddress(e.target.value)}
+                disabled={loading}
+              >
+                {wallets.map((wallet) => (
+                  <option key={wallet.address} value={wallet.address}>
+                    {wallet.address} (餘額: {wallet.balance} BTC)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>接收者地址</label>
+              <input
+                type="text"
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+                placeholder="輸入接收者的比特幣地址"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>金額 (BTC)</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="輸入發送金額 (BTC)"
+                step="0.00000001"
+                disabled={loading}
+              />
+            </div>
+
+            <button
+              onClick={handleSendTransaction}
+              className="send-btn"
               disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>金額 (BTC)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="輸入發送金額 (BTC)"
-              step="0.00000001"
-              disabled={loading}
-            />
-          </div>
-
-          <button onClick={handleSendTransaction} className="send-btn" disabled={loading}>
-            {loading ? "發送中..." : "發送比特幣"}
-          </button>
-        </>
-      )}
-
-      {transactionDetails && (
-        <div className="transaction-details">
-          <h3>交易詳情</h3>
-          <p><strong>發送者：</strong> {transactionDetails.sender}</p>
-          <p><strong>接收者：</strong> {transactionDetails.recipient}</p>
-          <p><strong>發送金額：</strong> {transactionDetails.amount} BTC</p>
-          <p><strong>發送時間：</strong> {transactionDetails.timestamp}</p>
-          {!showTransactionHash ? (
-            <button onClick={handleShowTransactionHash} className="show-hash-btn" disabled={loading}>
-              交易訊息摘要
+            >
+              {loading ? "發送中..." : "發送比特幣"}
             </button>
-          ) : (
-            <p><strong>交易訊息摘要：</strong> {transactionDetails.transactionHash}</p>
-          )}
-        </div>
-      )}
-
-      {showPasswordInput && (
-        <div className="password-input">
-          <label>請輸入密碼</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
-          />
-          <button onClick={verifyPassword} disabled={loading}>驗證</button>
-        </div>
-      )}
-
-      {showPrivateKey && (
-        <div className="private-key">
-          <p><strong>私鑰：</strong> {privateKey}</p>
-        </div>
-      )}
-
-      {finalSignature && (
-        <div className="signature-result">
-          <p><strong>簽名成功 </strong></p>
-          <p><strong>交易簽名：</strong> {finalSignature}</p>
-        </div>
-      )}
-
-      {showCompleteButton && (
-        <div className="key-lock-container">
-          <div
-            className="key"
-            draggable="true"
-            onDragStart={(e) => e.dataTransfer.setData('text/plain', 'key')}
-          >
-            🔑
           </div>
-          <div
-            className="lock"
-            onDrop={(e) => {
-              e.preventDefault();
-              handleSignTransaction();
-            }}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            🔒
+        )}
+
+        {/* Transaction Details Section */}
+        {transactionDetails && (
+          <div className="transaction-details">
+            <h3>交易詳情</h3>
+            <p><strong>發送者：</strong> {transactionDetails.sender}</p>
+            <p><strong>接收者：</strong> {transactionDetails.recipient}</p>
+            <p><strong>發送金額：</strong> {transactionDetails.amount} BTC</p>
+            <p><strong>發送時間：</strong> {transactionDetails.timestamp}</p>
+            {!showTransactionHash ? (
+              <button
+                onClick={handleShowTransactionHash}
+                className="show-hash-btn"
+              >
+                交易詳情雜湊
+              </button>
+            ) : (
+              <p><strong>交易詳情做雜湊：</strong> {transactionDetails.transactionHash}</p>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {showFinalizeButton && (
-        <button onClick={handleFinalizeTransaction} className="finalize-btn" disabled={loading}>
-          完成交易
-        </button>
-      )}
+        {/* Password Input Section */}
+        {showPasswordInput && (
+          <div className="password-input">
+            <label>請輸入密碼</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button onClick={verifyPassword}>驗證</button>
+          </div>
+        )}
 
-      {transactionId && (
-        <div className="transaction-success">
-          <p><strong>交易哈希值 (TxID)：</strong> {transactionId}</p>
-          <p><strong>交易資料完成</strong></p>
-        </div>
-      )}
+        {/* Private Key Section */}
+        {showPrivateKey && (
+          <div className="private-key">
+            <p><strong>私鑰：</strong> {privateKey}</p>
+          </div>
+        )}
+
+        {/* Signature Section */}
+        {finalSignature && (
+          <div className="signature-result">
+            <p><strong>簽名成功(可用公鑰匙驗證)</strong></p>
+            <p><strong>交易簽名訊息：</strong> {finalSignature}</p>
+          </div>
+        )}
+
+        {/* Key-Lock Interaction Section */}
+        {showCompleteButton && (
+          <div className="key-lock-container">
+            <p><strong>拖動鑰匙進行簽名</strong></p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div
+                draggable="true"
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', 'key')}
+                style={{ fontSize: '2rem', marginRight: '10px' }}
+              >
+                🔑
+              </div>
+              <div
+                className="lock"
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleSignTransaction();
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                style={{ fontSize: '2rem' }}
+              >
+                🔒
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Finalize Transaction Button */}
+        {showFinalizeButton && (
+          <button
+            onClick={handleFinalizeTransaction}
+            className="finalize-btn"
+          >
+            完成交易
+          </button>
+        )}
+
+        {/* Transaction Success Section */}
+        {transactionId && (
+          <div className="transaction-success">
+            <p><strong>打包後訊息(廣播到大廳)：</strong> {transactionId}</p>
+          </div>
+        )}
+
+        {/* Back to Wallet Button */}
+        {showBackButton && (
+          <button
+            onClick={handleBackToWallet}
+            className="finalize-btn"
+          >
+            回到我的錢包
+          </button>
+        )}
+      </div>
     </div>
   );
 };

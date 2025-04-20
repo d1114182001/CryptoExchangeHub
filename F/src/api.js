@@ -2,62 +2,76 @@ import axios from 'axios';
 
 const api_url = 'http://localhost:3001';
 
-// 登入用戶
+
 export const loginUser = async (username, password) => {
   try {
-    const response = await axios.post(`${api_url}/login`, {
-      username,
-      password,
-    });
-    return response.data;
+      const response = await axios.post(`${api_url}/login`, {
+          username,
+          password
+      });
+      
+      return response.data; // 返回响应数据
   } catch (err) {
-    throw new Error(err.response?.data?.message || 'Server error, please try again later');
+      throw new Error(err.response?.data?.message || 'Server error, please try again later');
   }
-};
+}
 
-// 新增錢包
 export const addWallet = async (userId) => {
-  const response = await fetch(`${api_url}/create-wallet`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ user_id: userId }),
+  const response = await fetch(`${api_url}/create-wallet`, { // 更新这裡的 URL
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: userId }), // 發送 user_id
   });
+
+  if (!response.ok) {
+      throw new Error('Failed to create wallet');
+  }
 
   return await response.json();
 };
 
-// 獲取所有錢包
+
 export const getAllWallets = async (token) => {
   try {
     const response = await axios.get(`${api_url}/wallets`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`, // 在Header添加 Authorization
       },
     });
     return response.data;
   } catch (error) {
-    throw new Error('無法獲取錢包數據');
+    throw new Error("無法獲取錢包數據");
   }
 };
 
-// 註冊用戶
 export const registerUser = async (formData) => {
   try {
-    console.log('Submitting formData:', formData);
+    console.log("Submitting formData:", formData);
     const response = await axios.post(`${api_url}/register`, formData);
-    return response.data;
+    return response.data; // 返回响应数据
   } catch (error) {
-    console.error('註冊請求錯誤:', error.response?.data || error.message);
+    console.error("注册请求错误:", error.response?.data || error.message);
     throw new Error(error.response?.data?.message || '註冊失敗，請稍後再試。');
   }
 };
 
-// 初始化交易
+export const NewAddress = async(userId) => {
+  try {
+    const response = await axios.post(`${api_url}/newaddress`,{
+      userId:userId,
+    });
+    return response.data;
+  }catch(error){
+    throw new Error("無法新增錢包地址");
+    
+  }
+}
+
 export const sendTransaction = async (senderAddress, recipientAddress, amount) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/send-transaction`,
       { senderAddress, recipientAddress, amount },
@@ -69,10 +83,10 @@ export const sendTransaction = async (senderAddress, recipientAddress, amount) =
   }
 };
 
-// 獲取私鑰
+
 export const getPrivateKey = async (senderAddress, password) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/get-private-key`,
       { senderAddress, password },
@@ -84,18 +98,44 @@ export const getPrivateKey = async (senderAddress, password) => {
   }
 };
 
-// 完成交易
-export const completeTransaction = async (senderAddress, recipientAddress, amount, transactionHash, finalize = false) => {
+
+export const signTransaction = async (senderAddress, recipientAddress, amount, transactionHash,finalize = false) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
+    const response = await axios.post(
+      `${api_url}/sign-transaction`,
+      { senderAddress, recipientAddress, amount, transactionHash,finalize },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (err) {
+    throw new Error(err.response?.data?.message || '簽名失敗');
+  }
+};
+
+export const completeTransaction = async (senderAddress, recipientAddress, amount, finalTransactionHash,signature,finalize) => {
+  try {
+    const token = sessionStorage.getItem('token');
     const response = await axios.post(
       `${api_url}/complete-transaction`,
-      { senderAddress, recipientAddress, amount, transactionHash, finalize },
+      { senderAddress, recipientAddress, amount,finalTransactionHash,signature,finalize },
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
   } catch (err) {
     throw new Error(err.response?.data?.message || '完成交易失敗');
+  }
+};
+
+export const recoverWallet = async (mnemonic,userId) => {
+  try {
+    const response = await axios.post(`${api_url}/recover-wallet`, {
+      mnemonic: mnemonic,
+      userId:userId
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error);
   }
 };
 
